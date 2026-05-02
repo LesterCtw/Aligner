@@ -16,6 +16,11 @@ The target workflow is:
 
 This repository is initialized as a Python project scaffold.
 
+GitHub repository:
+
+- Private repo: <https://github.com/LesterCtw/Aligner>
+- Default branch: `main`
+
 Implemented now:
 
 - Python package layout under `src/aligner`
@@ -37,6 +42,16 @@ Not implemented yet:
 - Metadata export
 - 3D preview
 
+## Locked Product Decisions
+
+- Version 1 delivery must include actually runnable RAFT local alignment.
+- Development may build the non-RAFT pipeline first, but RAFT cannot remain only an interface or placeholder at delivery.
+- `phase correlation only` is allowed as a fallback / debug mode.
+- A delivery build without working RAFT is degraded mode and does not satisfy the full v1 acceptance target.
+- RAFT output must be constrained before image warping; unrestricted raw dense flow is out of scope.
+
+See [docs/session-memory.md](docs/session-memory.md) for current discussion state, next open question, and handoff context.
+
 ## Development
 
 This project uses `uv`.
@@ -54,4 +69,3 @@ uv run aligner gui
 - Default output is a visual preview / stabilization result, not metrology-grade 3D reconstruction.
 - Bad slices may be replaced for preview, but slice count, z-index, and physical depth rhythm must be preserved.
 - RAFT flow must be constrained before use; unrestricted dense deformation is out of scope.
-
