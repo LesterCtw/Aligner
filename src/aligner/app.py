@@ -164,10 +164,14 @@ class MainWindow(QMainWindow):
         threshold_controls.addWidget(self.threshold_value)
         threshold_controls.addWidget(self.apply_threshold_button)
 
+        self.xy_preview_label = QLabel("XY")
+        self.xz_preview_label = QLabel("XZ")
+        self.yz_preview_label = QLabel("YZ")
+
         previews = QGridLayout()
-        previews.addWidget(QLabel("Raw XY"), 0, 0)
-        previews.addWidget(QLabel("Raw XZ"), 0, 1)
-        previews.addWidget(QLabel("Raw YZ"), 0, 2)
+        previews.addWidget(self.xy_preview_label, 0, 0)
+        previews.addWidget(self.xz_preview_label, 0, 1)
+        previews.addWidget(self.yz_preview_label, 0, 2)
         previews.addWidget(self.xy_preview, 1, 0)
         previews.addWidget(self.xz_preview, 1, 1)
         previews.addWidget(self.yz_preview, 1, 2)

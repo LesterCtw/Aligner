@@ -50,6 +50,18 @@ def test_main_window_shows_vtk_preview_shell_above_supporting_orthogonal_preview
         window.close()
 
 
+def test_supporting_orthogonal_preview_labels_are_stack_neutral() -> None:
+    get_qapp()
+
+    window = MainWindow()
+    try:
+        assert window.xy_preview_label.text() == "XY"
+        assert window.xz_preview_label.text() == "XZ"
+        assert window.yz_preview_label.text() == "YZ"
+    finally:
+        window.close()
+
+
 def test_vtk_preview_accepts_threshold_iso_surface_volume() -> None:
     get_qapp()
     preview = ThresholdIsoSurfacePreview()
