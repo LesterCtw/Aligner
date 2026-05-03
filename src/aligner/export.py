@@ -61,6 +61,8 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
                 "z_nm": record.z_nm,
                 "width": record.width,
                 "height": record.height,
+                "output_width": export_width,
+                "output_height": export_height,
                 "dtype": record.dtype,
                 "alignment_status": alignment_status,
             }
@@ -110,6 +112,8 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
                     "width": local_alignment.control_grid_shape[1],
                 },
             }
+            if local_alignment.raft_input is not None:
+                metadata["preview_stack"]["raft_input"] = local_alignment.raft_input
         metadata["coarse_xy_positions"] = [
             {
                 "original_slice_index": record.index,

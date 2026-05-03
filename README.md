@@ -60,13 +60,13 @@ Implemented now:
 - Constrained RAFT local alignment MVS using small/mock RAFT flow inputs
 - Balanced constrained flow parameters fixed at max displacement 4 px, 64 px control grid spacing, smoothing sigma 1 grid cell, and working scale 1.0
 - Run Alignment now executes phase correlation followed by constrained RAFT local alignment and shows the constrained RAFT Aligned Stack in the Orthogonal Preview panel
-- Constrained RAFT Preview Stack export metadata records RAFT backend, degraded mode, working resolution scale, Balanced constraint parameters, control grid shape, and raw/constrained flow displacement maxima
+- Constrained RAFT Preview Stack export metadata records RAFT backend, degraded mode, working resolution scale, RAFT normalization range, RAFT Padding/crop-back provenance, Balanced constraint parameters, control grid shape, and raw/constrained flow displacement maxima
 - Internal Bad Slice detection and preview-only replacement MVS
 - Phase graph confidence can mark suspicious slices without replacing them immediately
 - RAFT/control-grid sanity is required before a suspicious slice becomes Alignment-Unusable
 - Confirmed Bad Slices are replaced only in the preview stack by interpolation from surrounding good slices
 - Bad Slice replacement preserves slice count, original index, z position, and original input files
-- Preview Stack export metadata records Bad Slice status, display source, and replacement source slices
+- Preview Stack export metadata records per-slice output dimensions, Bad Slice status, display source, and replacement source slices
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
 - Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, and UI slice spacing input
@@ -74,13 +74,12 @@ Implemented now:
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 - Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
 - Behavior tests for constrained flow clipping, constrained flow shape, local preview warp integration, UI Run Alignment, and constrained RAFT export metadata
-- Behavior tests for two-stage Bad Slice confirmation, no replacement on phase signal alone, preview-only replacement provenance, preserved slice rhythm, and Bad Slice export metadata
+- Behavior tests for two-stage Bad Slice confirmation, no replacement on phase signal alone, preview-only replacement provenance, preserved slice rhythm, Bad Slice export metadata, complete RAFT input provenance export, and final aligned TIFF export contract
 
 Not implemented yet:
 
 - Real RAFT backend using `torchvision.models.optical_flow`
 - Full v1 Preview Alignment with real constrained RAFT on Windows CUDA
-- Full aligned provenance metadata for real RAFT local alignment
 
 ## Locked Product Decisions
 

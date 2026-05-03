@@ -57,6 +57,7 @@ class ConstrainedRaftAlignmentMetadata:
     raw_max_displacement_px: float
     constrained_max_displacement_px: float
     control_grid_shape: tuple[int, int]
+    raft_input: dict[str, object] | None = None
 
 
 @dataclass(slots=True)

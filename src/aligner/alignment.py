@@ -17,6 +17,7 @@ from aligner.models import (
 )
 from aligner.raft import (
     BALANCED_RAFT_CONSTRAINTS,
+    RaftAdapterMetadata,
     RaftFlowResult,
     constrain_raft_flow,
     run_mock_raft_smoke_path,
@@ -73,6 +74,7 @@ def run_constrained_raft_alignment(
                 raw_max_displacement_px=0.0,
                 constrained_max_displacement_px=0.0,
                 control_grid_shape=(0, 0),
+                raft_input=None,
             ),
         )
 
@@ -91,6 +93,7 @@ def run_constrained_raft_alignment(
     control_grid_shape = (0, 0)
     flow_count = 0
     raft_pair_raw_max: dict[tuple[int, int], float] = {}
+    raft_input: dict[str, object] | None = None
 
     for index in range(1, len(phase_aligned.slices)):
         flow_result = provider(local_stack, index - 1, index)
@@ -99,6 +102,8 @@ def run_constrained_raft_alignment(
             backend_name = flow_result.metadata.backend_name
             device = flow_result.metadata.device
             degraded_mode = flow_result.metadata.degraded_mode
+            if raft_input is None:
+                raft_input = _raft_input_provenance(flow_result.metadata)
         else:
             raw_flow = flow_result
 
@@ -146,8 +151,38 @@ def run_constrained_raft_alignment(
             raw_max_displacement_px=raw_max,
             constrained_max_displacement_px=constrained_max,
             control_grid_shape=control_grid_shape,
+            raft_input=raft_input,
         ),
     )
+
+
+def _raft_input_provenance(metadata: RaftAdapterMetadata) -> dict[str, object]:
+    return {
+        "normalization": {
+            "source_min": metadata.normalization.source_min,
+            "source_max": metadata.normalization.source_max,
+            "lower_percentile": metadata.normalization.lower_percentile,
+            "upper_percentile": metadata.normalization.upper_percentile,
+        },
+        "padding": {
+            "mode": metadata.padding.mode,
+            "multiple": metadata.padding.multiple,
+            "original_width": metadata.padding.original_width,
+            "original_height": metadata.padding.original_height,
+            "padded_width": metadata.padding.padded_width,
+            "padded_height": metadata.padding.padded_height,
+            "pad_left": metadata.padding.pad_left,
+            "pad_right": metadata.padding.pad_right,
+            "pad_top": metadata.padding.pad_top,
+            "pad_bottom": metadata.padding.pad_bottom,
+        },
+        "crop_back": {
+            "x": metadata.crop_x,
+            "y": metadata.crop_y,
+            "width": metadata.crop_width,
+            "height": metadata.crop_height,
+        },
+    }
 
 
 def create_phase_correlation_edges(

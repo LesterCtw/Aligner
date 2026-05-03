@@ -112,6 +112,8 @@ def test_export_identity_preview_stack_writes_required_metadata(tmp_path: Path) 
             "z_nm": 0.0,
             "width": 3,
             "height": 2,
+            "output_width": 3,
+            "output_height": 2,
             "dtype": "uint16",
             "alignment_status": "identity",
         },
@@ -123,6 +125,8 @@ def test_export_identity_preview_stack_writes_required_metadata(tmp_path: Path) 
             "z_nm": 25.0,
             "width": 3,
             "height": 2,
+            "output_width": 3,
+            "output_height": 2,
             "dtype": "uint16",
             "alignment_status": "identity",
         },
@@ -230,6 +234,44 @@ def test_export_constrained_raft_preview_stack_writes_local_alignment_metadata(
     }
 
 
+def test_export_constrained_raft_preview_stack_records_raft_input_provenance(
+    tmp_path: Path,
+) -> None:
+    raw_stack = make_shifted_raw_stack(tmp_path)
+    aligned_stack = run_constrained_raft_alignment(raw_stack)
+    output_folder = tmp_path / "constrained-raft-provenance-export"
+
+    export_preview_stack(aligned_stack, output_folder)
+
+    metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
+    assert metadata["preview_stack"]["raft_input"] == {
+        "normalization": {
+            "source_min": pytest.approx(float(np.percentile(aligned_stack.data, 1.0))),
+            "source_max": pytest.approx(float(np.percentile(aligned_stack.data, 99.0))),
+            "lower_percentile": 1.0,
+            "upper_percentile": 99.0,
+        },
+        "padding": {
+            "mode": "reflect",
+            "multiple": 8,
+            "original_width": 16,
+            "original_height": 16,
+            "padded_width": 16,
+            "padded_height": 16,
+            "pad_left": 0,
+            "pad_right": 0,
+            "pad_top": 0,
+            "pad_bottom": 0,
+        },
+        "crop_back": {
+            "x": 0,
+            "y": 0,
+            "width": 16,
+            "height": 16,
+        },
+    }
+
+
 def test_export_preview_stack_records_bad_slice_replacement_metadata(
     tmp_path: Path,
 ) -> None:
@@ -281,6 +323,91 @@ def test_export_preview_stack_records_bad_slice_replacement_metadata(
     assert metadata["slices"][1]["bad_slice_status"] == "alignment_unusable"
     assert metadata["slices"][1]["display_source"] == "interpolated"
     assert metadata["slices"][1]["replacement_source_slices"] == [0, 2]
+
+
+def test_export_final_aligned_stack_preserves_slice_count_and_records_output_dimensions(
+    tmp_path: Path,
+) -> None:
+    input_folder = tmp_path / "final-aligned-input"
+    input_folder.mkdir()
+    rng = np.random.default_rng(11)
+    base = np.zeros((32, 32), dtype=np.uint16)
+    base[8:24, 10:22] = 2000
+    base[12:18, 14:20] = 4000
+    bad_candidate = rng.integers(0, 4096, size=(32, 32), dtype=np.uint16)
+    data = np.stack([base, bad_candidate, base], axis=0)
+    slices = []
+    for index in range(data.shape[0]):
+        source = input_folder / f"slice_{index + 1}.tif"
+        tifffile.imwrite(source, data[index])
+        slices.append(
+            SliceRecord(
+                index=index,
+                filename=source.name,
+                path=str(source),
+                z_nm=float(index * 25),
+                width=32,
+                height=32,
+                dtype="uint16",
+                quality_label="raw",
+            )
+        )
+    raw_stack = RawStack(data=data, slices=slices, slice_spacing_nm=25.0)
+
+    def unusable_middle_flow(
+        _stack: RawStack,
+        reference_index: int,
+        moving_index: int,
+    ) -> np.ndarray:
+        flow = np.zeros((2, 32, 32), dtype=np.float32)
+        if 1 in (reference_index, moving_index):
+            flow[0] = 20.0
+        return flow
+
+    aligned_stack = run_constrained_raft_alignment(
+        raw_stack,
+        raft_flow_provider=unusable_middle_flow,
+    )
+    output_folder = tmp_path / "final-aligned-export"
+
+    export_preview_stack(aligned_stack, output_folder)
+
+    exported_files = sorted(output_folder.glob("*.tif"))
+    exported_images = [tifffile.imread(path) for path in exported_files]
+    metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
+    assert len(exported_files) == raw_stack.data.shape[0]
+    output_shapes = {image.shape for image in exported_images}
+    assert len(output_shapes) == 1
+    output_height, output_width = output_shapes.pop()
+    assert metadata["preview_stack"]["image_dimensions"] == {
+        "width": output_width,
+        "height": output_height,
+    }
+    assert [
+        {
+            "output_file": slice_metadata["output_file"],
+            "output_width": slice_metadata["output_width"],
+            "output_height": slice_metadata["output_height"],
+        }
+        for slice_metadata in metadata["slices"]
+    ] == [
+        {
+            "output_file": "slice_0000.tif",
+            "output_width": output_width,
+            "output_height": output_height,
+        },
+        {
+            "output_file": "slice_0001.tif",
+            "output_width": output_width,
+            "output_height": output_height,
+        },
+        {
+            "output_file": "slice_0002.tif",
+            "output_width": output_width,
+            "output_height": output_height,
+        },
+    ]
+    assert metadata["slices"][1]["display_source"] == "interpolated"
 
 
 def test_export_identity_preview_stack_refuses_existing_export_files(tmp_path: Path) -> None:
