@@ -34,12 +34,14 @@ Implemented scaffold:
 - Weighted registration graph solve for non-cumulative global coarse XY positions
 - Phase-only Aligned Stack generation and display in the existing Orthogonal Preview panel
 - Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
+- Phase-only Preview Stack export applies a common Aligned Crop Region to exclude invalid shift borders
+- Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
 - Behavior tests for loading, provenance fields, unsupported input errors, UI slice spacing input, preview generation, identity export, and UI export enablement
-- Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, and phase-only export metadata
+- Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 
 Last known verification:
 
-- `uv run pytest`: passed, 27 tests
+- `uv run pytest`: passed, 29 tests
 - `uv run ruff check .`: passed
 - `uv run aligner probe`: passed
 

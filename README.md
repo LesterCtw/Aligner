@@ -53,11 +53,13 @@ Implemented now:
 - Weighted registration graph solve for non-cumulative global coarse XY positions
 - Phase-only Aligned Stack generation and display in the existing Orthogonal Preview panel
 - Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
+- Phase-only Preview Stack export applies a common Aligned Crop Region to exclude invalid shift borders
+- Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
 - Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, and UI slice spacing input
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
-- Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, and phase-only export metadata
+- Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 
 Not implemented yet:
 

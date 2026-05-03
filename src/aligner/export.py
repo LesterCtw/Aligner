@@ -29,12 +29,14 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
         names = ", ".join(path.name for path in existing_files)
         raise FileExistsError(f"Refusing to overwrite existing export files: {names}")
 
-    for index, image in enumerate(stack.data):
-        tifffile.imwrite(output_path / f"slice_{index:04d}.tif", image)
-
     first = stack.slices[0]
     is_aligned = isinstance(stack, AlignedStack)
     alignment_status = "phase_only" if is_aligned else "identity"
+    export_data = _export_data(stack)
+    export_height, export_width = export_data.shape[1:]
+    for index, image in enumerate(export_data):
+        tifffile.imwrite(output_path / f"slice_{index:04d}.tif", image)
+
     metadata = {
         "software": {
             "name": "aligner",
@@ -45,8 +47,8 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
             "slice_count": len(stack.slices),
             "slice_spacing_nm": stack.slice_spacing_nm,
             "image_dimensions": {
-                "width": first.width,
-                "height": first.height,
+                "width": export_width,
+                "height": export_height,
             },
             "dtype": first.dtype,
         },
@@ -71,6 +73,12 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
             "local": "none",
             "mode": "degraded_debug",
         }
+        metadata["preview_stack"]["aligned_crop_region"] = {
+            "x": stack.crop_region.x,
+            "y": stack.crop_region.y,
+            "width": stack.crop_region.width,
+            "height": stack.crop_region.height,
+        }
         metadata["coarse_xy_positions"] = [
             {
                 "original_slice_index": record.index,
@@ -88,6 +96,14 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
         json.dumps(metadata, indent=2) + "\n",
         encoding="utf-8",
     )
+
+
+def _export_data(stack: RawStack | AlignedStack):
+    if not isinstance(stack, AlignedStack):
+        return stack.data
+
+    crop = stack.crop_region
+    return stack.data[:, crop.y : crop.y + crop.height, crop.x : crop.x + crop.width]
 
 
 def _edge_to_metadata(edge: PairwiseEdge) -> dict[str, float | int | str]:

@@ -3,19 +3,25 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 
-from aligner.models import AlignedStack, PairwiseEdge, RawStack
+from aligner.models import AlignedCropRegion, AlignedStack, PairwiseEdge, RawStack
 
 
 def run_phase_alignment(stack: RawStack, *, max_pair_distance: int = 3) -> AlignedStack:
     edges = create_phase_correlation_edges(stack, max_pair_distance=max_pair_distance)
     positions = solve_global_positions(edges, slice_count=stack.data.shape[0])
     data = _apply_integer_alignment(stack.data, positions)
+    height, width = stack.data.shape[1:]
     return AlignedStack(
         data=data,
         slices=list(stack.slices),
         slice_spacing_nm=stack.slice_spacing_nm,
         edges=edges,
         positions=positions,
+        crop_region=_compute_common_valid_crop_region(
+            positions,
+            width=width,
+            height=height,
+        ),
     )
 
 
@@ -97,6 +103,36 @@ def _apply_integer_alignment(
             axis=(0, 1),
         )
     return aligned
+
+
+def _compute_common_valid_crop_region(
+    positions: list[tuple[float, float]],
+    *,
+    width: int,
+    height: int,
+) -> AlignedCropRegion:
+    left = 0
+    top = 0
+    right = width
+    bottom = height
+
+    for dx, dy in positions:
+        x = int(round(dx))
+        y = int(round(dy))
+        left = max(left, 0 if x >= 0 else -x)
+        top = max(top, 0 if y >= 0 else -y)
+        right = min(right, width - x if x >= 0 else width)
+        bottom = min(bottom, height - y if y >= 0 else height)
+
+    if right <= left or bottom <= top:
+        raise ValueError("Alignment transforms have no common valid crop region.")
+
+    return AlignedCropRegion(
+        x=left,
+        y=top,
+        width=right - left,
+        height=bottom - top,
+    )
 
 
 def _estimate_integer_shift(

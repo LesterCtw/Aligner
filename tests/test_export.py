@@ -163,6 +163,38 @@ def test_export_phase_only_preview_stack_writes_alignment_metadata(tmp_path: Pat
     assert metadata["slices"][1]["coarse_y"] == 1.0
 
 
+def test_export_phase_only_preview_stack_uses_common_aligned_crop_region(
+    tmp_path: Path,
+) -> None:
+    raw_stack = make_shifted_raw_stack(tmp_path)
+    aligned_stack = run_phase_alignment(raw_stack)
+    output_folder = tmp_path / "phase-cropped-export"
+
+    export_preview_stack(aligned_stack, output_folder)
+
+    exported = [tifffile.imread(path) for path in sorted(output_folder.glob("*.tif"))]
+    assert [image.shape for image in exported] == [(15, 14), (15, 14)]
+
+
+def test_export_phase_only_preview_stack_records_aligned_crop_region_metadata(
+    tmp_path: Path,
+) -> None:
+    raw_stack = make_shifted_raw_stack(tmp_path)
+    aligned_stack = run_phase_alignment(raw_stack)
+    output_folder = tmp_path / "phase-crop-metadata-export"
+
+    export_preview_stack(aligned_stack, output_folder)
+
+    metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
+    assert metadata["preview_stack"]["image_dimensions"] == {"width": 14, "height": 15}
+    assert metadata["preview_stack"]["aligned_crop_region"] == {
+        "x": 0,
+        "y": 0,
+        "width": 14,
+        "height": 15,
+    }
+
+
 def test_export_identity_preview_stack_refuses_existing_export_files(tmp_path: Path) -> None:
     stack = make_raw_stack(tmp_path)
     output_folder = tmp_path / "identity-export"

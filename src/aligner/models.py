@@ -30,12 +30,21 @@ class RawStack:
 
 
 @dataclass(slots=True)
+class AlignedCropRegion:
+    x: int
+    y: int
+    width: int
+    height: int
+
+
+@dataclass(slots=True)
 class AlignedStack:
     data: NDArray[np.integer]
     slices: list[SliceRecord]
     slice_spacing_nm: float
     edges: list["PairwiseEdge"]
     positions: list[tuple[float, float]]
+    crop_region: AlignedCropRegion
 
 
 @dataclass(slots=True)
