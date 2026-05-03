@@ -18,3 +18,16 @@
 
 - Prefer `uv` for dependency management, virtual environments, lockfiles, and command execution.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for `LesterCtw/Aligner`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The repo uses the default five-label triage vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo with root-level domain docs. See `docs/agents/domain.md`.
