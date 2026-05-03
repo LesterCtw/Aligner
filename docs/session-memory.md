@@ -29,11 +29,17 @@ Implemented scaffold:
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
 - Identity Preview Stack TIFF export from the loaded Raw Stack
 - Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
+- Phase-correlation-only Preview Alignment as a degraded/debug path
+- Pairwise phase correlation edges for slice distances 1 to 3 with dx, dy, response, weight, and method metadata
+- Weighted registration graph solve for non-cumulative global coarse XY positions
+- Phase-only Aligned Stack generation and display in the existing Orthogonal Preview panel
+- Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
 - Behavior tests for loading, provenance fields, unsupported input errors, UI slice spacing input, preview generation, identity export, and UI export enablement
+- Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, and phase-only export metadata
 
 Last known verification:
 
-- `uv run pytest`: passed, 21 tests
+- `uv run pytest`: passed, 27 tests
 - `uv run ruff check .`: passed
 - `uv run aligner probe`: passed
 

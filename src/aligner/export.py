@@ -6,10 +6,14 @@ from pathlib import Path
 import tifffile
 
 from aligner import __version__
-from aligner.models import RawStack
+from aligner.models import AlignedStack, PairwiseEdge, RawStack
 
 
 def export_identity_preview_stack(stack: RawStack, output_folder: Path | str) -> None:
+    export_preview_stack(stack, output_folder)
+
+
+def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | str) -> None:
     output_path = Path(output_folder)
     resolved_output_path = output_path.resolve()
     input_folders = {Path(record.path).parent.resolve() for record in stack.slices}
@@ -29,13 +33,15 @@ def export_identity_preview_stack(stack: RawStack, output_folder: Path | str) ->
         tifffile.imwrite(output_path / f"slice_{index:04d}.tif", image)
 
     first = stack.slices[0]
+    is_aligned = isinstance(stack, AlignedStack)
+    alignment_status = "phase_only" if is_aligned else "identity"
     metadata = {
         "software": {
             "name": "aligner",
             "version": __version__,
         },
         "preview_stack": {
-            "alignment_status": "identity",
+            "alignment_status": alignment_status,
             "slice_count": len(stack.slices),
             "slice_spacing_nm": stack.slice_spacing_nm,
             "image_dimensions": {
@@ -54,12 +60,43 @@ def export_identity_preview_stack(stack: RawStack, output_folder: Path | str) ->
                 "width": record.width,
                 "height": record.height,
                 "dtype": record.dtype,
-                "alignment_status": "identity",
+                "alignment_status": alignment_status,
             }
             for index, record in enumerate(stack.slices)
         ],
     }
+    if is_aligned:
+        metadata["preview_stack"]["alignment_method"] = {
+            "coarse": "phase_correlation",
+            "local": "none",
+            "mode": "degraded_debug",
+        }
+        metadata["coarse_xy_positions"] = [
+            {
+                "original_slice_index": record.index,
+                "x": x,
+                "y": y,
+            }
+            for record, (x, y) in zip(stack.slices, stack.positions, strict=True)
+        ]
+        metadata["pairwise_edges"] = [_edge_to_metadata(edge) for edge in stack.edges]
+        for slice_metadata, (x, y) in zip(metadata["slices"], stack.positions, strict=True):
+            slice_metadata["coarse_x"] = x
+            slice_metadata["coarse_y"] = y
+
     (output_path / "metadata.json").write_text(
         json.dumps(metadata, indent=2) + "\n",
         encoding="utf-8",
     )
+
+
+def _edge_to_metadata(edge: PairwiseEdge) -> dict[str, float | int | str]:
+    return {
+        "i": edge.i,
+        "j": edge.j,
+        "dx": edge.dx,
+        "dy": edge.dy,
+        "response": edge.response,
+        "weight": edge.weight,
+        "method": edge.method,
+    }

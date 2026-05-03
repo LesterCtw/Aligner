@@ -22,9 +22,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from aligner.export import export_identity_preview_stack
+from aligner.alignment import run_phase_alignment
+from aligner.export import export_preview_stack
 from aligner.io import load_raw_stack, spacing_to_nm
-from aligner.models import ProjectConfig, RawStack
+from aligner.models import AlignedStack, ProjectConfig, RawStack
 from aligner.preview import generate_orthogonal_previews
 
 
@@ -80,6 +81,7 @@ class MainWindow(QMainWindow):
         self.resize(1200, 760)
         self.config = ProjectConfig()
         self.raw_stack: RawStack | None = None
+        self.aligned_stack: AlignedStack | None = None
 
         toolbar = QToolBar("Main")
         open_button = QPushButton("Open Folder")
@@ -94,9 +96,10 @@ class MainWindow(QMainWindow):
         self.spacing_unit = QComboBox()
         self.spacing_unit.addItems(["nm", "um"])
         toolbar.addWidget(self.spacing_unit)
-        run_button = QPushButton("Run Alignment")
-        run_button.setEnabled(False)
-        toolbar.addWidget(run_button)
+        self.run_button = QPushButton("Run Alignment")
+        self.run_button.setEnabled(False)
+        self.run_button.clicked.connect(self.run_alignment)
+        toolbar.addWidget(self.run_button)
         self.export_button = QPushButton("Export Preview Stack")
         self.export_button.setEnabled(False)
         self.export_button.clicked.connect(self.export_preview_stack)
@@ -156,19 +159,35 @@ class MainWindow(QMainWindow):
             self.raw_stack = load_raw_stack(folder, slice_spacing_nm=self.config.slice_spacing_nm)
         except (OSError, ValueError) as error:
             self.raw_stack = None
+            self.aligned_stack = None
             self.timeline.setMaximum(0)
+            self.run_button.setEnabled(False)
             self.export_button.setEnabled(False)
             self.left_panel.setText(f"Project settings\n\nLoad failed:\n{error}")
             self.statusBar().showMessage(f"Load failed: {error}")
             return
 
         self.config.input_folder = str(folder)
+        self.aligned_stack = None
         self.timeline.setMaximum(max(0, len(self.raw_stack.slices) - 1))
         self.timeline.setValue(0)
+        self.run_button.setEnabled(True)
         self.export_button.setEnabled(True)
         self._update_stack_summary()
         self.show_slice(0)
         self.statusBar().showMessage(f"Loaded {len(self.raw_stack.slices)} raw slices")
+
+    def run_alignment(self) -> None:
+        if self.raw_stack is None:
+            self.statusBar().showMessage("Alignment failed: no Raw Stack loaded")
+            return
+
+        self.aligned_stack = run_phase_alignment(
+            self.raw_stack,
+            max_pair_distance=self.config.max_pair_distance,
+        )
+        self.show_slice(self.timeline.value())
+        self.statusBar().showMessage("Generated phase-only Aligned Stack")
 
     def export_preview_stack(self) -> None:
         if self.raw_stack is None:
@@ -185,25 +204,29 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Export failed: no Raw Stack loaded")
             return
 
+        stack = self.aligned_stack if self.aligned_stack is not None else self.raw_stack
         try:
-            export_identity_preview_stack(self.raw_stack, folder)
+            export_preview_stack(stack, folder)
         except (OSError, ValueError) as error:
             self.statusBar().showMessage(f"Export failed: {error}")
             return
 
-        self.statusBar().showMessage(f"Exported identity Preview Stack to {folder}")
+        export_label = "phase-only" if self.aligned_stack is not None else "identity"
+        self.statusBar().showMessage(f"Exported {export_label} Preview Stack to {folder}")
 
     def show_slice(self, slice_index: int) -> None:
         if self.raw_stack is None:
             return
 
-        previews = generate_orthogonal_previews(self.raw_stack, slice_index=slice_index)
+        stack = self.aligned_stack if self.aligned_stack is not None else self.raw_stack
+        previews = generate_orthogonal_previews(stack, slice_index=slice_index)
         self.viewer.show_array(previews.xy)
         self.xy_preview.show_array(previews.xy)
         self.xz_preview.show_array(previews.xz)
         self.yz_preview.show_array(previews.yz)
+        stack_label = "aligned" if self.aligned_stack is not None else "raw"
         self.statusBar().showMessage(
-            f"Showing raw slice {slice_index + 1} of {len(self.raw_stack.slices)}"
+            f"Showing {stack_label} slice {slice_index + 1} of {len(self.raw_stack.slices)}"
         )
 
     def _update_stack_summary(self) -> None:

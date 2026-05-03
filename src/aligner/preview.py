@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from aligner.models import RawStack
+from aligner.models import AlignedStack, RawStack
 
 
 @dataclass(slots=True)
@@ -16,7 +16,7 @@ class OrthogonalPreviews:
 
 
 def generate_orthogonal_previews(
-    stack: RawStack,
+    stack: RawStack | AlignedStack,
     *,
     slice_index: int,
     x_index: int | None = None,

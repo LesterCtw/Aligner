@@ -30,6 +30,15 @@ class RawStack:
 
 
 @dataclass(slots=True)
+class AlignedStack:
+    data: NDArray[np.integer]
+    slices: list[SliceRecord]
+    slice_spacing_nm: float
+    edges: list["PairwiseEdge"]
+    positions: list[tuple[float, float]]
+
+
+@dataclass(slots=True)
 class PairwiseEdge:
     i: int
     j: int

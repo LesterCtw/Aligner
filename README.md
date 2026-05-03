@@ -48,21 +48,24 @@ Implemented now:
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
 - Identity Preview Stack export from the loaded Raw Stack
 - Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
+- Phase-correlation-only Preview Alignment as a degraded/debug path
+- Pairwise phase correlation edges for slice distances 1 to 3 with dx, dy, response, weight, and method metadata
+- Weighted registration graph solve for non-cumulative global coarse XY positions
+- Phase-only Aligned Stack generation and display in the existing Orthogonal Preview panel
+- Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
 - Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, and UI slice spacing input
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
+- Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, and phase-only export metadata
 
 Not implemented yet:
 
-- Phase correlation alignment
-- Registration graph solve
 - RAFT backend
 - Constrained local warp
 - Bad slice detection and replacement
-- Aligned Preview Stack export after alignment
-- Full aligned provenance metadata export
-- Aligned Orthogonal Preview
+- Full v1 Preview Alignment with constrained RAFT
+- Full aligned provenance metadata for RAFT local alignment and Bad Slice replacement
 
 ## Locked Product Decisions
 

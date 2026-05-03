@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -38,6 +39,28 @@ def test_export_preview_stack_action_enables_after_raw_stack_load(tmp_path: Path
         window.close()
 
 
+def test_run_alignment_action_displays_phase_only_aligned_stack(tmp_path: Path) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    base = np.arange(4 * 5, dtype=np.uint16).reshape(4, 5)
+    tifffile.imwrite(input_folder / "slice_1.tif", base)
+    tifffile.imwrite(input_folder / "slice_2.tif", np.roll(base, shift=(1, 2), axis=(0, 1)))
+
+    window = MainWindow()
+    try:
+        assert not window.run_button.isEnabled()
+
+        window.load_folder(input_folder)
+        window.run_button.click()
+
+        assert window.aligned_stack is not None
+        np.testing.assert_array_equal(window.aligned_stack.data[1], base)
+        assert "phase-only Aligned Stack" in window.statusBar().currentMessage()
+    finally:
+        window.close()
+
+
 def test_export_to_folder_reports_success_after_raw_stack_load(tmp_path: Path) -> None:
     get_qapp()
     input_folder = tmp_path / "input"
@@ -56,6 +79,29 @@ def test_export_to_folder_reports_success_after_raw_stack_load(tmp_path: Path) -
         assert (output_folder / "slice_0001.tif").exists()
         assert (output_folder / "metadata.json").exists()
         assert "Exported identity Preview Stack" in window.statusBar().currentMessage()
+    finally:
+        window.close()
+
+
+def test_export_to_folder_uses_phase_only_aligned_stack_after_alignment(tmp_path: Path) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    base = np.arange(4 * 5, dtype=np.uint16).reshape(4, 5)
+    tifffile.imwrite(input_folder / "slice_1.tif", base)
+    tifffile.imwrite(input_folder / "slice_2.tif", np.roll(base, shift=(1, 2), axis=(0, 1)))
+    output_folder = tmp_path / "phase-export"
+
+    window = MainWindow()
+    try:
+        window.load_folder(input_folder)
+        window.run_alignment()
+
+        window.export_to_folder(output_folder)
+
+        metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
+        assert metadata["preview_stack"]["alignment_status"] == "phase_only"
+        assert "phase-only Preview Stack" in window.statusBar().currentMessage()
     finally:
         window.close()
 
