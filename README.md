@@ -72,6 +72,8 @@ Implemented now:
   an applied threshold without rebuilding while dragging
 - VTK + Qt 3D preview rendering shell in the main preview area
 - Raw Stack threshold iso-surface rendering from a display-only preview volume
+- Aligned Stack threshold iso-surface rendering after Run Alignment from the
+  same display-only preview volume path
 - Preview volume generation uses XY pixel size and slice spacing to preserve
   physical preview proportions
 - Preview volume generation can downsample/interpolate Z slices for display
@@ -114,6 +116,8 @@ Implemented now:
   edits, and explicit Apply / Enter threshold commits
 - Behavior tests for Raw Stack threshold iso-surface preview volume spacing,
   display-only non-mutation behavior, and applied-threshold preview rebuilds
+- Behavior tests for Raw and Aligned Stack 3D preview source labeling,
+  Run Alignment preview refresh, and active-stack threshold rebuild behavior
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 - Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
@@ -122,8 +126,6 @@ Implemented now:
 
 Not implemented yet:
 
-- Aligned Stack threshold iso-surface rendering after Run Alignment is not
-  implemented yet
 - Full v1 Preview Alignment acceptance verification on Windows CUDA
 
 Current acceptance status:
@@ -149,9 +151,9 @@ Current acceptance status:
 - RAFT raw dense flow is compressed to a control grid, clipped, smoothed, and interpolated back before preview warping.
 - The v1 constraint strength is fixed to developer-tuned Balanced in the normal UI.
 - Bad Slice replacement is preview-only. It must preserve slice count, original index, and z position, and it must be recorded in metadata.
-- Threshold Iso-surface Preview is the main 3D preview surface. Raw Stack
-  threshold iso-surface rendering is implemented; Aligned Stack 3D rendering
-  after Run Alignment remains follow-up work.
+- Threshold Iso-surface Preview is the main 3D preview surface. Raw Stack and
+  Aligned Stack threshold iso-surface rendering are implemented through the
+  display-only preview volume path.
 - Orthogonal Preview remains the supporting XY / XZ / YZ slice inspection surface.
 - Opacity-based volume rendering and transfer-function controls are out of scope for v1.
 - Stack physical spacing is represented by XY pixel size in nm and slice spacing in nm. It supports preview proportions and must not be treated as metrology-grade reconstruction evidence.

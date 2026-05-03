@@ -242,7 +242,9 @@ class MainWindow(QMainWindow):
         self.export_button.setEnabled(True)
         self._update_stack_summary()
         self.show_slice(0)
-        self.statusBar().showMessage(f"Loaded {len(self.raw_stack.slices)} raw slices")
+        self.statusBar().showMessage(
+            f"Loaded {len(self.raw_stack.slices)} raw slices; 3D preview: Raw Stack"
+        )
 
     def run_alignment(self) -> None:
         if self.raw_stack is None:
@@ -253,8 +255,9 @@ class MainWindow(QMainWindow):
             self.raw_stack,
             max_pair_distance=self.config.max_pair_distance,
         )
+        self._prepare_active_stack_iso_surface_preview()
         self.show_slice(self.timeline.value())
-        self.statusBar().showMessage("Generated constrained RAFT Aligned Stack")
+        self.statusBar().showMessage("Generated constrained RAFT Aligned Stack; 3D preview: Aligned Stack")
 
     def export_preview_stack(self) -> None:
         if self.raw_stack is None:
@@ -308,7 +311,7 @@ class MainWindow(QMainWindow):
 
         self.applied_threshold = self.pending_threshold
         self.applied_threshold_rebuilds.append(self.applied_threshold)
-        self._render_raw_stack_iso_surface_preview()
+        self._render_active_stack_iso_surface_preview()
         self.statusBar().showMessage(f"Applied threshold {self.applied_threshold}")
 
     def _prepare_threshold_controls(self) -> None:
@@ -364,17 +367,37 @@ class MainWindow(QMainWindow):
             return
 
         self.threshold_preview_volume = generate_threshold_preview_volume(self.raw_stack)
-        self._render_raw_stack_iso_surface_preview()
+        self._render_active_stack_iso_surface_preview()
 
-    def _render_raw_stack_iso_surface_preview(self) -> None:
+    def _prepare_active_stack_iso_surface_preview(self) -> None:
+        stack = self._active_preview_stack()
+        if stack is None:
+            self.threshold_preview_volume = None
+            self.threshold_iso_surface_preview.clear_preview()
+            return
+
+        self.threshold_preview_volume = generate_threshold_preview_volume(stack)
+        self._render_active_stack_iso_surface_preview()
+
+    def _render_active_stack_iso_surface_preview(self) -> None:
         if self.threshold_preview_volume is None or self.applied_threshold is None:
             return
 
         self.threshold_iso_surface_preview.show_iso_surface(
             self.threshold_preview_volume,
             threshold=self.applied_threshold,
-            source_label="Raw Stack",
+            source_label=self._active_preview_source_label(),
         )
+
+    def _active_preview_stack(self) -> RawStack | AlignedStack | None:
+        if self.aligned_stack is not None:
+            return self.aligned_stack
+        return self.raw_stack
+
+    def _active_preview_source_label(self) -> str:
+        if self.aligned_stack is not None:
+            return "Aligned Stack"
+        return "Raw Stack"
 
     def _set_pending_threshold_from_slider(self, value: int) -> None:
         if self._syncing_threshold_controls:

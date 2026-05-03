@@ -64,6 +64,82 @@ def test_run_alignment_action_displays_constrained_raft_aligned_stack(tmp_path: 
         window.close()
 
 
+def test_run_alignment_refreshes_3d_preview_from_aligned_stack(tmp_path: Path) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    base = np.arange(4 * 5, dtype=np.uint16).reshape(4, 5)
+    tifffile.imwrite(input_folder / "slice_1.tif", base)
+    tifffile.imwrite(input_folder / "slice_2.tif", np.roll(base, shift=(1, 2), axis=(0, 1)))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+
+        assert window.threshold_iso_surface_preview.current_source_label() == "Raw Stack"
+
+        window.run_alignment()
+
+        assert window.aligned_stack is not None
+        assert window.threshold_iso_surface_preview.current_source_label() == "Aligned Stack"
+        assert window.threshold_iso_surface_preview.current_data_shape() == window.aligned_stack.data.shape
+        assert "3D preview: Aligned Stack" in window.statusBar().currentMessage()
+    finally:
+        window.close()
+
+
+def test_apply_threshold_after_alignment_keeps_3d_preview_on_aligned_stack(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    base = np.arange(4 * 5, dtype=np.uint16).reshape(4, 5)
+    tifffile.imwrite(input_folder / "slice_1.tif", base)
+    tifffile.imwrite(input_folder / "slice_2.tif", np.roll(base, shift=(1, 2), axis=(0, 1)))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+        window.run_alignment()
+
+        window.threshold_value.setValue(12)
+        window.apply_threshold_button.click()
+
+        assert window.threshold_iso_surface_preview.current_source_label() == "Aligned Stack"
+        assert window.threshold_iso_surface_preview.current_threshold() == 12
+        assert window.threshold_iso_surface_preview.current_data_shape() == window.aligned_stack.data.shape
+    finally:
+        window.close()
+
+
+def test_timeline_uses_aligned_stack_when_3d_preview_source_is_aligned(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    base = np.arange(4 * 5, dtype=np.uint16).reshape(4, 5)
+    tifffile.imwrite(input_folder / "slice_1.tif", base)
+    tifffile.imwrite(input_folder / "slice_2.tif", np.roll(base, shift=(1, 2), axis=(0, 1)))
+    tifffile.imwrite(input_folder / "slice_3.tif", np.roll(base, shift=(2, 1), axis=(0, 1)))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+        window.run_alignment()
+
+        window.timeline.setValue(1)
+
+        assert window.threshold_iso_surface_preview.current_source_label() == "Aligned Stack"
+        assert "Showing aligned slice 2 of 3" in window.statusBar().currentMessage()
+    finally:
+        window.close()
+
+
 def test_export_to_folder_reports_success_after_raw_stack_load(tmp_path: Path) -> None:
     get_qapp()
     input_folder = tmp_path / "input"
@@ -200,6 +276,25 @@ def test_open_folder_flow_prepares_raw_stack_iso_surface_preview(
         assert window.threshold_iso_surface_preview.current_source_label() == "Raw Stack"
         assert window.threshold_iso_surface_preview.current_threshold() == 10
         assert window.threshold_iso_surface_preview.current_spacing_nm() == (25.0, 25.0, 10.0)
+    finally:
+        window.close()
+
+
+def test_open_folder_flow_reports_raw_stack_3d_preview_source(tmp_path: Path) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 4), 10, dtype=np.uint8))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 4), 100, dtype=np.uint8))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+
+        window.load_folder(input_folder)
+
+        assert window.threshold_iso_surface_preview.current_source_label() == "Raw Stack"
+        assert "3D preview: Raw Stack" in window.statusBar().currentMessage()
     finally:
         window.close()
 

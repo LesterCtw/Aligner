@@ -32,6 +32,9 @@ Implemented scaffold:
 - 2D raw slice viewer with slider navigation
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
 - VTK + Qt 3D preview rendering shell in the main preview area
+- Raw Stack threshold iso-surface rendering from a display-only preview volume
+- Aligned Stack threshold iso-surface rendering after Run Alignment from the
+  same display-only preview volume path
 - Main UI layout with left project information, right upper Threshold
   Iso-surface Preview shell, and right lower supporting Orthogonal Preview
 - Identity Preview Stack TIFF export from the loaded Raw Stack
@@ -57,13 +60,16 @@ Implemented scaffold:
 - Bad Slice replacement preserves slice count, original index, z position, and original input files
 - Bad Slice export metadata records per-slice output dimensions, status, display source, and replacement source slices
 - Behavior tests for constrained flow clipping, constrained flow shape, local preview warp integration, UI Run Alignment, and constrained RAFT export metadata
+- Behavior tests for Raw and Aligned Stack 3D preview source labeling,
+  Run Alignment preview refresh, and active-stack threshold rebuild behavior
 - Behavior tests for two-stage Bad Slice confirmation, no replacement from phase signal alone, preview-only provenance, preserved slice rhythm, complete RAFT input provenance export, and final aligned TIFF export contract
 
 Last known verification:
 
-- `uv run pytest`: passed, 64 tests
+- `uv run pytest`: passed, 74 tests
 - `uv run ruff check .`: passed
-- `uv run aligner probe`: passed
+- `uv run aligner probe`: core dependencies available; optional RAFT backend
+  unavailable locally because torch/torchvision are not installed
 
 ## Product Positioning
 
