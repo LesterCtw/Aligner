@@ -39,6 +39,7 @@ Implemented now:
 - TIFF file discovery
 - Natural file sorting
 - Slice spacing unit conversion to nm
+- Slice spacing input in the PySide6 UI with `nm` and `um` units
 - Validated Raw Stack loading for 8-bit and 16-bit single-channel TIFF files
 - Raw Stack metadata records for filename, original index, z position, size, and dtype
 - PySide6 Open Folder flow for loading a Raw Stack into the UI
@@ -49,6 +50,7 @@ Implemented now:
 - Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
+- Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, and UI slice spacing input
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
 
 Not implemented yet:

@@ -40,7 +40,11 @@ def load_raw_stack(folder: Path | str, *, slice_spacing_nm: float) -> RawStack:
     expected_dtype: np.dtype | None = None
 
     for index, path in enumerate(files):
-        image = tifffile.imread(path)
+        try:
+            image = tifffile.imread(path)
+        except Exception as error:
+            raise ValueError(f"{path.name} could not be read as a TIFF.") from error
+
         if image.ndim != 2:
             raise ValueError(f"{path.name} is not a single-channel grayscale TIFF.")
 

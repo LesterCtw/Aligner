@@ -7,6 +7,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
+    QDoubleSpinBox,
     QFileDialog,
     QGridLayout,
     QHBoxLayout,
@@ -21,7 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from aligner.export import export_identity_preview_stack
-from aligner.io import load_raw_stack
+from aligner.io import load_raw_stack, spacing_to_nm
 from aligner.models import ProjectConfig, RawStack
 from aligner.preview import generate_orthogonal_previews
 
@@ -83,6 +85,15 @@ class MainWindow(QMainWindow):
         open_button = QPushButton("Open Folder")
         open_button.clicked.connect(self.open_folder)
         toolbar.addWidget(open_button)
+        toolbar.addWidget(QLabel("Slice spacing"))
+        self.spacing_value = QDoubleSpinBox()
+        self.spacing_value.setRange(0.001, 1_000_000.0)
+        self.spacing_value.setDecimals(3)
+        self.spacing_value.setValue(self.config.slice_spacing_nm)
+        toolbar.addWidget(self.spacing_value)
+        self.spacing_unit = QComboBox()
+        self.spacing_unit.addItems(["nm", "um"])
+        toolbar.addWidget(self.spacing_unit)
         run_button = QPushButton("Run Alignment")
         run_button.setEnabled(False)
         toolbar.addWidget(run_button)
@@ -138,6 +149,10 @@ class MainWindow(QMainWindow):
 
     def load_folder(self, folder: Path) -> None:
         try:
+            self.config.slice_spacing_nm = spacing_to_nm(
+                self.spacing_value.value(),
+                self.spacing_unit.currentText(),
+            )
             self.raw_stack = load_raw_stack(folder, slice_spacing_nm=self.config.slice_spacing_nm)
         except (OSError, ValueError) as error:
             self.raw_stack = None

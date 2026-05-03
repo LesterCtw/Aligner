@@ -20,6 +20,7 @@ Implemented scaffold:
 - TIFF discovery for `.tif` / `.tiff`
 - Natural sort
 - Slice spacing unit conversion to nm
+- Slice spacing input in the PySide6 UI with `nm` and `um` units
 - Validated Raw Stack loading for 8-bit and 16-bit single-channel TIFF files
 - Raw Stack metadata records for filename, original index, z position, size, and dtype
 - PySide6 Open Folder flow for loading a Raw Stack into the UI
@@ -28,11 +29,11 @@ Implemented scaffold:
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
 - Identity Preview Stack TIFF export from the loaded Raw Stack
 - Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
-- Behavior tests for loading, preview generation, identity export, and UI export enablement
+- Behavior tests for loading, provenance fields, unsupported input errors, UI slice spacing input, preview generation, identity export, and UI export enablement
 
 Last known verification:
 
-- `uv run pytest`: passed, 16 tests
+- `uv run pytest`: passed, 21 tests
 - `uv run ruff check .`: passed
 - `uv run aligner probe`: passed
 
