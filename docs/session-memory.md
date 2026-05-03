@@ -20,11 +20,19 @@ Implemented scaffold:
 - TIFF discovery for `.tif` / `.tiff`
 - Natural sort
 - Slice spacing unit conversion to nm
-- Basic tests
+- Validated Raw Stack loading for 8-bit and 16-bit single-channel TIFF files
+- Raw Stack metadata records for filename, original index, z position, size, and dtype
+- PySide6 Open Folder flow for loading a Raw Stack into the UI
+- Natural file order summary in the UI
+- 2D raw slice viewer with slider navigation
+- Raw XY / XZ / YZ Orthogonal Preview generation and display
+- Identity Preview Stack TIFF export from the loaded Raw Stack
+- Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
+- Behavior tests for loading, preview generation, identity export, and UI export enablement
 
 Last known verification:
 
-- `uv run pytest`: passed, 4 tests
+- `uv run pytest`: passed, 16 tests
 - `uv run ruff check .`: passed
 - `uv run aligner probe`: passed
 
@@ -71,7 +79,7 @@ Use this sequence unless the user changes priorities:
 3. 2D viewer: original image display, slider browsing, zoom / pan basics.
 4. Phase correlation: band-pass derived image, pairwise edges, response/confidence.
 5. Global graph solve: non-cumulative coarse XY positions.
-6. Aligned preview generation and export metadata skeleton.
+6. Identity preview export baseline and aligned preview generation / export metadata skeleton.
 7. RAFT backend: actual executable model path with dependency and weight handling.
 8. RAFT constraints: confidence filtering, forward-backward consistency, clipping, smoothing/coarse grid.
 9. Bad slice scoring and replacement with metadata records.
@@ -125,4 +133,3 @@ These remain unresolved:
 - Do not add unrestricted deformable registration.
 - Do not add CLAHE, gamma correction, or global histogram normalization as default alignment preprocessing.
 - Keep 16-bit image pipeline where practical; display-only conversions may use derived images.
-

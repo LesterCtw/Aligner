@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from aligner.export import export_identity_preview_stack
 from aligner.io import load_raw_stack
 from aligner.models import ProjectConfig, RawStack
 from aligner.preview import generate_orthogonal_previews
@@ -85,9 +86,10 @@ class MainWindow(QMainWindow):
         run_button = QPushButton("Run Alignment")
         run_button.setEnabled(False)
         toolbar.addWidget(run_button)
-        export_button = QPushButton("Export Preview Stack")
-        export_button.setEnabled(False)
-        toolbar.addWidget(export_button)
+        self.export_button = QPushButton("Export Preview Stack")
+        self.export_button.setEnabled(False)
+        self.export_button.clicked.connect(self.export_preview_stack)
+        toolbar.addWidget(self.export_button)
         self.addToolBar(toolbar)
 
         self.left_panel = QLabel("Project settings\n\nNo folder loaded")
@@ -140,6 +142,7 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError) as error:
             self.raw_stack = None
             self.timeline.setMaximum(0)
+            self.export_button.setEnabled(False)
             self.left_panel.setText(f"Project settings\n\nLoad failed:\n{error}")
             self.statusBar().showMessage(f"Load failed: {error}")
             return
@@ -147,9 +150,33 @@ class MainWindow(QMainWindow):
         self.config.input_folder = str(folder)
         self.timeline.setMaximum(max(0, len(self.raw_stack.slices) - 1))
         self.timeline.setValue(0)
+        self.export_button.setEnabled(True)
         self._update_stack_summary()
         self.show_slice(0)
         self.statusBar().showMessage(f"Loaded {len(self.raw_stack.slices)} raw slices")
+
+    def export_preview_stack(self) -> None:
+        if self.raw_stack is None:
+            self.statusBar().showMessage("Export failed: no Raw Stack loaded")
+            return
+
+        folder = QFileDialog.getExistingDirectory(self, "Export Preview Stack")
+        if not folder:
+            return
+        self.export_to_folder(Path(folder))
+
+    def export_to_folder(self, folder: Path) -> None:
+        if self.raw_stack is None:
+            self.statusBar().showMessage("Export failed: no Raw Stack loaded")
+            return
+
+        try:
+            export_identity_preview_stack(self.raw_stack, folder)
+        except (OSError, ValueError) as error:
+            self.statusBar().showMessage(f"Export failed: {error}")
+            return
+
+        self.statusBar().showMessage(f"Exported identity Preview Stack to {folder}")
 
     def show_slice(self, slice_index: int) -> None:
         if self.raw_stack is None:

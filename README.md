@@ -45,8 +45,11 @@ Implemented now:
 - Natural file order summary in the UI
 - 2D raw slice viewer with slider navigation
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
+- Identity Preview Stack export from the loaded Raw Stack
+- Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
+- Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
 
 Not implemented yet:
 
@@ -55,8 +58,8 @@ Not implemented yet:
 - RAFT backend
 - Constrained local warp
 - Bad slice detection and replacement
-- Preview stack export
-- Metadata export
+- Aligned Preview Stack export after alignment
+- Full aligned provenance metadata export
 - Aligned Orthogonal Preview
 
 ## Locked Product Decisions
