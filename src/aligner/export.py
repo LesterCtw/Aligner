@@ -31,7 +31,7 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
 
     first = stack.slices[0]
     is_aligned = isinstance(stack, AlignedStack)
-    alignment_status = "phase_only" if is_aligned else "identity"
+    alignment_status = stack.alignment_status if is_aligned else "identity"
     export_data = _export_data(stack)
     export_height, export_width = export_data.shape[1:]
     for index, image in enumerate(export_data):
@@ -68,10 +68,17 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
         ],
     }
     if is_aligned:
+        local_alignment = stack.local_alignment
+        local_method = "constrained_raft" if local_alignment is not None else "none"
+        mode = (
+            "degraded_debug"
+            if local_alignment is None or local_alignment.degraded_mode
+            else "full"
+        )
         metadata["preview_stack"]["alignment_method"] = {
             "coarse": "phase_correlation",
-            "local": "none",
-            "mode": "degraded_debug",
+            "local": local_method,
+            "mode": mode,
         }
         metadata["preview_stack"]["aligned_crop_region"] = {
             "x": stack.crop_region.x,
@@ -79,6 +86,30 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
             "width": stack.crop_region.width,
             "height": stack.crop_region.height,
         }
+        if local_alignment is not None:
+            metadata["preview_stack"]["raft_backend"] = {
+                "name": local_alignment.backend_name,
+                "device": local_alignment.device,
+                "degraded_mode": local_alignment.degraded_mode,
+                "working_resolution_scale": local_alignment.working_scale,
+            }
+            metadata["preview_stack"]["balanced_constraints"] = {
+                "name": local_alignment.constraints.name,
+                "max_displacement_px": local_alignment.constraints.max_displacement_px,
+                "control_grid_spacing_px": local_alignment.constraints.control_grid_spacing_px,
+                "smoothing_sigma_grid": local_alignment.constraints.smoothing_sigma_grid,
+            }
+            metadata["preview_stack"]["constrained_raft_flow"] = {
+                "flow_count": local_alignment.flow_count,
+                "raw_max_displacement_px": local_alignment.raw_max_displacement_px,
+                "constrained_max_displacement_px": (
+                    local_alignment.constrained_max_displacement_px
+                ),
+                "control_grid_shape": {
+                    "height": local_alignment.control_grid_shape[0],
+                    "width": local_alignment.control_grid_shape[1],
+                },
+            }
         metadata["coarse_xy_positions"] = [
             {
                 "original_slice_index": record.index,

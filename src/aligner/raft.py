@@ -4,8 +4,9 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.ndimage import gaussian_filter, map_coordinates
 
-from aligner.models import RawStack
+from aligner.models import RawStack, RaftConstraintParameters
 
 
 @dataclass(slots=True)
@@ -59,6 +60,72 @@ class RaftAdapterMetadata:
 class RaftFlowResult:
     flow: NDArray[np.float32]
     metadata: RaftAdapterMetadata
+
+
+@dataclass(slots=True)
+class ConstrainedRaftFlowMetadata:
+    constraints: RaftConstraintParameters
+    control_grid_shape: tuple[int, int]
+    raw_max_displacement_px: float
+    constrained_max_displacement_px: float
+
+
+@dataclass(slots=True)
+class ConstrainedRaftFlow:
+    flow: NDArray[np.float32]
+    metadata: ConstrainedRaftFlowMetadata
+
+
+BALANCED_RAFT_CONSTRAINTS = RaftConstraintParameters(
+    name="balanced",
+    max_displacement_px=4.0,
+    control_grid_spacing_px=64,
+    smoothing_sigma_grid=1.0,
+    working_scale=1.0,
+)
+
+
+def constrain_raft_flow(
+    raw_flow: NDArray[np.float32],
+    *,
+    constraints: RaftConstraintParameters = BALANCED_RAFT_CONSTRAINTS,
+) -> ConstrainedRaftFlow:
+    if raw_flow.ndim != 3 or raw_flow.shape[0] != 2:
+        raise ValueError("RAFT flow must use channel-first shape (2, H, W).")
+    if constraints.max_displacement_px <= 0:
+        raise ValueError("Balanced max displacement must be greater than zero.")
+    if constraints.control_grid_spacing_px <= 0:
+        raise ValueError("Control grid spacing must be greater than zero.")
+    if constraints.smoothing_sigma_grid < 0:
+        raise ValueError("Smoothing sigma must not be negative.")
+
+    flow = raw_flow.astype(np.float32)
+    _, height, width = flow.shape
+    control_grid = _flow_to_control_grid(
+        flow,
+        spacing_px=constraints.control_grid_spacing_px,
+    )
+    clipped_grid = _clip_flow_magnitude(control_grid, constraints.max_displacement_px)
+    smoothed_grid = gaussian_filter(
+        clipped_grid,
+        sigma=(0.0, constraints.smoothing_sigma_grid, constraints.smoothing_sigma_grid),
+        mode="nearest",
+    ).astype(np.float32)
+    constrained_flow = _interpolate_control_grid(smoothed_grid, height=height, width=width)
+    constrained_flow = _clip_flow_magnitude(
+        constrained_flow,
+        constraints.max_displacement_px,
+    )
+
+    return ConstrainedRaftFlow(
+        flow=constrained_flow,
+        metadata=ConstrainedRaftFlowMetadata(
+            constraints=constraints,
+            control_grid_shape=control_grid.shape[1:],
+            raw_max_displacement_px=_max_flow_magnitude(flow),
+            constrained_max_displacement_px=_max_flow_magnitude(constrained_flow),
+        ),
+    )
 
 
 def grayscale_to_raft_tensor(image: NDArray[np.floating]) -> NDArray[np.float32]:
@@ -179,3 +246,72 @@ def normalize_stack_for_raft(
             upper_percentile=upper_percentile,
         ),
     )
+
+
+def _flow_to_control_grid(
+    flow: NDArray[np.float32],
+    *,
+    spacing_px: int,
+) -> NDArray[np.float32]:
+    _, height, width = flow.shape
+    grid_height = max(1, int(np.ceil(height / spacing_px)))
+    grid_width = max(1, int(np.ceil(width / spacing_px)))
+    grid = np.zeros((2, grid_height, grid_width), dtype=np.float32)
+
+    for y_index in range(grid_height):
+        y_start = y_index * spacing_px
+        y_end = min(height, y_start + spacing_px)
+        for x_index in range(grid_width):
+            x_start = x_index * spacing_px
+            x_end = min(width, x_start + spacing_px)
+            grid[:, y_index, x_index] = np.mean(
+                flow[:, y_start:y_end, x_start:x_end],
+                axis=(1, 2),
+            )
+
+    return grid
+
+
+def _interpolate_control_grid(
+    control_grid: NDArray[np.float32],
+    *,
+    height: int,
+    width: int,
+) -> NDArray[np.float32]:
+    _, grid_height, grid_width = control_grid.shape
+    y_coordinates = np.zeros(height, dtype=np.float32)
+    x_coordinates = np.zeros(width, dtype=np.float32)
+    if grid_height > 1:
+        y_coordinates = np.linspace(0, grid_height - 1, height, dtype=np.float32)
+    if grid_width > 1:
+        x_coordinates = np.linspace(0, grid_width - 1, width, dtype=np.float32)
+
+    yy, xx = np.meshgrid(y_coordinates, x_coordinates, indexing="ij")
+    interpolated = np.empty((2, height, width), dtype=np.float32)
+    for channel in range(2):
+        interpolated[channel] = map_coordinates(
+            control_grid[channel],
+            [yy, xx],
+            order=1,
+            mode="nearest",
+        ).astype(np.float32)
+    return interpolated
+
+
+def _clip_flow_magnitude(
+    flow: NDArray[np.float32],
+    max_displacement_px: float,
+) -> NDArray[np.float32]:
+    magnitude = np.sqrt(np.sum(flow**2, axis=0, keepdims=True))
+    scale = np.divide(
+        max_displacement_px,
+        magnitude,
+        out=np.ones_like(magnitude, dtype=np.float32),
+        where=magnitude > max_displacement_px,
+    )
+    return (flow * np.minimum(scale, 1.0)).astype(np.float32)
+
+
+def _max_flow_magnitude(flow: NDArray[np.float32]) -> float:
+    magnitude = np.sqrt(np.sum(flow**2, axis=0))
+    return float(np.max(magnitude))

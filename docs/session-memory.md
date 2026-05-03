@@ -38,10 +38,16 @@ Implemented scaffold:
 - Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
 - Behavior tests for loading, provenance fields, unsupported input errors, UI slice spacing input, preview generation, identity export, and UI export enablement
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
+- RAFT input foundation with stack-level robust normalization, grayscale-to-3-channel conversion, reflect padding, crop-back, and mock smoke metadata
+- Constrained RAFT local alignment MVS using small/mock RAFT flow inputs
+- Balanced constrained flow parameters fixed at max displacement 4 px, 64 px control grid spacing, smoothing sigma 1 grid cell, and working scale 1.0
+- Run Alignment now executes phase correlation followed by constrained RAFT local alignment and displays the constrained RAFT Aligned Stack in the Orthogonal Preview panel
+- Constrained RAFT export metadata records backend, degraded mode, working scale, Balanced constraints, control grid shape, and raw/constrained displacement maxima
+- Behavior tests for constrained flow clipping, constrained flow shape, local preview warp integration, UI Run Alignment, and constrained RAFT export metadata
 
 Last known verification:
 
-- `uv run pytest`: passed, 29 tests
+- `uv run pytest`: passed, 36 tests
 - `uv run ruff check .`: passed
 - `uv run aligner probe`: passed
 
@@ -74,6 +80,7 @@ These decisions were confirmed in conversation:
 - It is not acceptable for v1 delivery to contain only a RAFT interface with no working backend.
 - `phase correlation only` can exist as debug / degraded fallback.
 - Full v1 acceptance requires `phase correlation + constrained RAFT`.
+- Current constrained RAFT implementation is an MVS that uses mock/small flow inputs; real `torchvision.models.optical_flow` RAFT remains required for full v1 acceptance.
 - Normal UI should not show interpolation / replacement labels for bad slices.
 - Metadata must preserve replacement records.
 - Bad slices must not be skipped or deleted; z-index and slice count must be preserved.
@@ -89,8 +96,8 @@ Use this sequence unless the user changes priorities:
 4. Phase correlation: band-pass derived image, pairwise edges, response/confidence.
 5. Global graph solve: non-cumulative coarse XY positions.
 6. Identity preview export baseline and aligned preview generation / export metadata skeleton.
-7. RAFT backend: actual executable model path with dependency and weight handling.
-8. RAFT constraints: confidence filtering, forward-backward consistency, clipping, smoothing/coarse grid.
+7. RAFT constraints: clipping, smoothing/coarse grid, interpolation, and constrained preview warp.
+8. RAFT backend: actual executable model path with dependency and weight handling.
 9. Bad slice scoring and replacement with metadata records.
 10. Export aligned preview TIFF sequence.
 

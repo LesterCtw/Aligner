@@ -38,6 +38,28 @@ class AlignedCropRegion:
 
 
 @dataclass(slots=True)
+class RaftConstraintParameters:
+    name: str
+    max_displacement_px: float
+    control_grid_spacing_px: int
+    smoothing_sigma_grid: float
+    working_scale: float
+
+
+@dataclass(slots=True)
+class ConstrainedRaftAlignmentMetadata:
+    backend_name: str
+    device: str
+    degraded_mode: bool
+    working_scale: float
+    constraints: RaftConstraintParameters
+    flow_count: int
+    raw_max_displacement_px: float
+    constrained_max_displacement_px: float
+    control_grid_shape: tuple[int, int]
+
+
+@dataclass(slots=True)
 class AlignedStack:
     data: NDArray[np.integer]
     slices: list[SliceRecord]
@@ -45,6 +67,8 @@ class AlignedStack:
     edges: list["PairwiseEdge"]
     positions: list[tuple[float, float]]
     crop_region: AlignedCropRegion
+    alignment_status: str = "phase_only"
+    local_alignment: ConstrainedRaftAlignmentMetadata | None = None
 
 
 @dataclass(slots=True)

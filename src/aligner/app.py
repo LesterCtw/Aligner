@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from aligner.alignment import run_phase_alignment
+from aligner.alignment import run_constrained_raft_alignment
 from aligner.export import export_preview_stack
 from aligner.io import load_raw_stack, spacing_to_nm
 from aligner.models import AlignedStack, ProjectConfig, RawStack
@@ -182,12 +182,12 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Alignment failed: no Raw Stack loaded")
             return
 
-        self.aligned_stack = run_phase_alignment(
+        self.aligned_stack = run_constrained_raft_alignment(
             self.raw_stack,
             max_pair_distance=self.config.max_pair_distance,
         )
         self.show_slice(self.timeline.value())
-        self.statusBar().showMessage("Generated phase-only Aligned Stack")
+        self.statusBar().showMessage("Generated constrained RAFT Aligned Stack")
 
     def export_preview_stack(self) -> None:
         if self.raw_stack is None:
@@ -211,7 +211,13 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Export failed: {error}")
             return
 
-        export_label = "phase-only" if self.aligned_stack is not None else "identity"
+        export_label = "identity"
+        if self.aligned_stack is not None:
+            export_label = (
+                "constrained RAFT"
+                if self.aligned_stack.alignment_status == "constrained_raft"
+                else "phase-only"
+            )
         self.statusBar().showMessage(f"Exported {export_label} Preview Stack to {folder}")
 
     def show_slice(self, slice_index: int) -> None:

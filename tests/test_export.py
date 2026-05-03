@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import tifffile
 
-from aligner.alignment import run_phase_alignment
+from aligner.alignment import run_constrained_raft_alignment, run_phase_alignment
 from aligner.export import export_identity_preview_stack, export_preview_stack
 from aligner.models import RawStack, SliceRecord
 
@@ -192,6 +192,41 @@ def test_export_phase_only_preview_stack_records_aligned_crop_region_metadata(
         "y": 0,
         "width": 14,
         "height": 15,
+    }
+
+
+def test_export_constrained_raft_preview_stack_writes_local_alignment_metadata(
+    tmp_path: Path,
+) -> None:
+    raw_stack = make_shifted_raw_stack(tmp_path)
+    aligned_stack = run_constrained_raft_alignment(raw_stack)
+    output_folder = tmp_path / "constrained-raft-export"
+
+    export_preview_stack(aligned_stack, output_folder)
+
+    metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
+    assert metadata["preview_stack"]["alignment_status"] == "constrained_raft"
+    assert metadata["preview_stack"]["alignment_method"] == {
+        "coarse": "phase_correlation",
+        "local": "constrained_raft",
+        "mode": "degraded_debug",
+    }
+    assert metadata["preview_stack"]["raft_backend"] == {
+        "name": "mock_raft",
+        "device": "cpu",
+        "degraded_mode": True,
+        "working_resolution_scale": 1.0,
+    }
+    assert metadata["preview_stack"]["balanced_constraints"] == {
+        "name": "balanced",
+        "max_displacement_px": 4.0,
+        "control_grid_spacing_px": 64,
+        "smoothing_sigma_grid": 1.0,
+    }
+    assert metadata["preview_stack"]["constrained_raft_flow"]["flow_count"] == 1
+    assert metadata["preview_stack"]["constrained_raft_flow"]["control_grid_shape"] == {
+        "height": 1,
+        "width": 1,
     }
 
 

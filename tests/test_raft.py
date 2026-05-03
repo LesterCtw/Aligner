@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 
 from aligner.raft import (
+    BALANCED_RAFT_CONSTRAINTS,
+    constrain_raft_flow,
     crop_raft_flow_to_original,
     grayscale_to_raft_tensor,
     normalize_stack_for_raft,
@@ -114,3 +116,17 @@ def test_mock_raft_smoke_path_returns_cropped_flow_and_metadata() -> None:
     assert result.metadata.crop_y == 0
     assert result.metadata.crop_width == 5
     assert result.metadata.crop_height == 3
+
+
+def test_constrained_raft_flow_preserves_shape_and_clips_balanced_displacement() -> None:
+    raw_flow = np.zeros((2, 7, 9), dtype=np.float32)
+    raw_flow[0] = BALANCED_RAFT_CONSTRAINTS.max_displacement_px * 3.0
+    raw_flow[1] = BALANCED_RAFT_CONSTRAINTS.max_displacement_px * 4.0
+
+    constrained = constrain_raft_flow(raw_flow)
+
+    assert constrained.flow.shape == raw_flow.shape
+    assert constrained.metadata.constraints.name == "balanced"
+    assert constrained.metadata.control_grid_shape == (1, 1)
+    magnitude = np.sqrt(np.sum(constrained.flow**2, axis=0))
+    assert float(np.max(magnitude)) <= BALANCED_RAFT_CONSTRAINTS.max_displacement_px

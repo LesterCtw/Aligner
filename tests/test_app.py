@@ -39,7 +39,7 @@ def test_export_preview_stack_action_enables_after_raw_stack_load(tmp_path: Path
         window.close()
 
 
-def test_run_alignment_action_displays_phase_only_aligned_stack(tmp_path: Path) -> None:
+def test_run_alignment_action_displays_constrained_raft_aligned_stack(tmp_path: Path) -> None:
     get_qapp()
     input_folder = tmp_path / "input"
     input_folder.mkdir()
@@ -55,8 +55,9 @@ def test_run_alignment_action_displays_phase_only_aligned_stack(tmp_path: Path) 
         window.run_button.click()
 
         assert window.aligned_stack is not None
+        assert window.aligned_stack.alignment_status == "constrained_raft"
         np.testing.assert_array_equal(window.aligned_stack.data[1], base)
-        assert "phase-only Aligned Stack" in window.statusBar().currentMessage()
+        assert "constrained RAFT Aligned Stack" in window.statusBar().currentMessage()
     finally:
         window.close()
 
@@ -83,7 +84,9 @@ def test_export_to_folder_reports_success_after_raw_stack_load(tmp_path: Path) -
         window.close()
 
 
-def test_export_to_folder_uses_phase_only_aligned_stack_after_alignment(tmp_path: Path) -> None:
+def test_export_to_folder_uses_constrained_raft_aligned_stack_after_alignment(
+    tmp_path: Path,
+) -> None:
     get_qapp()
     input_folder = tmp_path / "input"
     input_folder.mkdir()
@@ -100,8 +103,8 @@ def test_export_to_folder_uses_phase_only_aligned_stack_after_alignment(tmp_path
         window.export_to_folder(output_folder)
 
         metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
-        assert metadata["preview_stack"]["alignment_status"] == "phase_only"
-        assert "phase-only Preview Stack" in window.statusBar().currentMessage()
+        assert metadata["preview_stack"]["alignment_status"] == "constrained_raft"
+        assert "constrained RAFT Preview Stack" in window.statusBar().currentMessage()
     finally:
         window.close()
 
