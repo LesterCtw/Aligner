@@ -64,3 +64,28 @@ def test_docs_record_vtk_qt_rendering_shell_decision() -> None:
     assert "Threshold Iso-surface Preview" in adr
     assert "opacity-based volume rendering" in adr
     assert "heavier dependency" in adr
+
+
+def test_readme_records_600_slice_threshold_preview_acceptance_status() -> None:
+    readme = read_doc("README.md")
+    normalized = " ".join(readme.split())
+
+    assert "600-slice Threshold Iso-surface Preview acceptance" in readme
+    assert "Issue #22" in readme
+    assert "manual camera interaction acceptance remains pending" in normalized
+
+
+def test_docs_record_windows_python_3128_pip_setup_workflow() -> None:
+    readme = read_doc("README.md")
+    setup_doc = read_doc("docs/windows-pip-setup.md")
+    acceptance_doc = read_doc("docs/windows-cuda-acceptance.md")
+
+    assert "Windows 11 + Python 3.12.8 pip-only setup" in readme
+    assert "Python 3.12.8" in setup_doc
+    assert "python -m pip install -e \".[dev]\"" in setup_doc
+    assert "uv sync" not in setup_doc
+    assert "uv run" not in setup_doc
+    assert "Python 3.12.8" in acceptance_doc
+    assert "python -m pip install -e \".[dev]\"" in acceptance_doc
+    assert "uv sync" not in acceptance_doc
+    assert "uv run" not in acceptance_doc

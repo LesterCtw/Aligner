@@ -379,6 +379,40 @@ def test_open_folder_flow_prepares_raw_stack_iso_surface_preview(
         window.close()
 
 
+def test_open_folder_flow_prepares_600_slice_raw_stack_iso_surface_preview(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    for index in range(600):
+        value = 10 if index < 300 else 100
+        tifffile.imwrite(
+            input_folder / f"slice_{index:04d}.tif",
+            np.full((4, 5), value, dtype=np.uint8),
+        )
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+
+        window.load_folder(input_folder)
+
+        assert window.raw_stack is not None
+        assert len(window.raw_stack.slices) == 600
+        assert window.threshold_preview_volume is not None
+        assert window.threshold_preview_volume.source_shape == (600, 4, 5)
+        assert window.threshold_preview_volume.data.shape == (600, 4, 5)
+        assert window.threshold_iso_surface_preview.current_source_label() == "Raw Stack"
+        assert window.threshold_iso_surface_preview.current_data_shape() == (600, 4, 5)
+        assert window.threshold_slider.isEnabled()
+        assert window.threshold_value.isEnabled()
+        assert "Otsu threshold" in window.threshold_summary.text()
+        assert "Loaded 600 raw slices; 3D preview: Raw Stack" in window.statusBar().currentMessage()
+    finally:
+        window.close()
+
+
 def test_open_folder_flow_reports_raw_stack_3d_preview_source(tmp_path: Path) -> None:
     get_qapp()
     input_folder = tmp_path / "input"

@@ -37,6 +37,9 @@ macOS is for development and tiny smoke/mock checks only. A macOS run can verify
 The Windows CUDA acceptance workflow is documented in
 [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md).
 
+The Windows 11 + Python 3.12.8 pip-only setup and test workflow is documented in
+[docs/windows-pip-setup.md](docs/windows-pip-setup.md).
+
 ## Current Status
 
 This repository is initialized as a Python project scaffold.
@@ -132,6 +135,11 @@ Not implemented yet:
 
 Current acceptance status:
 
+- 600-slice Threshold Iso-surface Preview acceptance is tracked in
+  [Issue #22](https://github.com/LesterCtw/Aligner/issues/22). Automated
+  behavior coverage exists for threshold controls, Raw/Aligned preview source
+  switching, and export isolation. The manual camera interaction acceptance
+  remains pending on a real desktop display with a practical 600-slice stack.
 - Real RAFT implementation work is tracked in
   [#13](https://github.com/LesterCtw/Aligner/issues/13).
 - Final Windows CUDA acceptance remains tracked in
@@ -222,15 +230,19 @@ NVIDIA CUDA GPU.
 Recommended build path for full v1:
 
 1. Use Windows 11 with an NVIDIA CUDA GPU for full acceptance.
-2. Install the current CUDA-capable `torch` and `torchvision` wheels from the official PyTorch selector. With `uv`, use the command from PyTorch but run it as `uv pip install ...` inside this project environment.
-3. Verify GPU access:
+2. Set up Python 3.12.8 with the pip-only workflow in
+   [docs/windows-pip-setup.md](docs/windows-pip-setup.md).
+3. Install the CUDA-capable `torch` and `torchvision` wheels from the official
+   PyTorch selector using `python -m pip install ...` inside the active
+   `.venv`.
+4. Verify GPU access:
 
-   ```bash
-   uv run python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
+   ```powershell
+   python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
    ```
 
-4. Force the real backend with `ALIGNER_RAFT_BACKEND=torchvision`.
-5. Launch the GUI and run the workflow from
+5. Force the real backend with `ALIGNER_RAFT_BACKEND=torchvision`.
+6. Launch the GUI and run the workflow from
    [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md).
 
 The real adapter converts Aligner's normalized grayscale-to-3-channel tensors
@@ -249,7 +261,7 @@ To force the real backend for Windows CUDA acceptance:
 
 ```powershell
 $env:ALIGNER_RAFT_BACKEND = "torchvision"
-uv run aligner gui
+aligner gui
 ```
 
 The default backend remains `mock` for lightweight macOS development. The

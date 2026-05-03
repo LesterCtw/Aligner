@@ -27,8 +27,7 @@ The acceptance path is:
 - NVIDIA GPU with a working CUDA-capable driver.
 - PowerShell.
 - Git.
-- Python 3.11 or newer.
-- `uv`.
+- Python 3.12.8.
 - A representative Raw Stack folder containing single-channel `.tif` or `.tiff`
   slices.
 
@@ -48,26 +47,27 @@ mixing preview output with source data.
 
 ## Install
 
-Open PowerShell and clone the repo:
+Set up the repository and virtual environment with the pip-only Windows setup
+workflow in [windows-pip-setup.md](windows-pip-setup.md).
+
+In practice, this means:
 
 ```powershell
 git clone https://github.com/LesterCtw/Aligner.git
 cd Aligner
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -e ".[dev]"
 ```
 
-Install Python project dependencies:
-
-```powershell
-uv sync --extra dev
-```
-
-Install CUDA-capable PyTorch and torchvision wheels using the command from the
-official PyTorch selector, but run it through `uv pip install`.
+Install CUDA-capable PyTorch and torchvision wheels using the `pip install`
+command from the official PyTorch selector.
 
 Example shape:
 
 ```powershell
-uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cuXXX
+python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cuXXX
 ```
 
 Replace `cuXXX` with the CUDA wheel index recommended by PyTorch for the target
@@ -78,7 +78,7 @@ machine.
 Verify Aligner's normal runtime dependencies:
 
 ```powershell
-uv run aligner probe
+aligner probe
 ```
 
 Expected core result:
@@ -93,7 +93,7 @@ installed `torchvision`, `CUDA available: True`, and a real CUDA device name.
 Verify PyTorch, torchvision, and CUDA:
 
 ```powershell
-uv run python -c "import torch, torchvision; print('torch', torch.__version__); print('torchvision', torchvision.__version__); print('cuda', torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
+python -c "import torch, torchvision; print('torch', torch.__version__); print('torchvision', torchvision.__version__); print('cuda', torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
 ```
 
 Expected result:
@@ -108,8 +108,8 @@ If CUDA is false, stop here. The machine is not ready for full v1 acceptance.
 Run the automated checks:
 
 ```powershell
-uv run pytest
-uv run ruff check .
+pytest
+ruff check .
 ```
 
 Expected result:
@@ -131,7 +131,7 @@ $env:ALIGNER_RAFT_BACKEND = "torchvision"
 Start the desktop app:
 
 ```powershell
-uv run aligner gui
+aligner gui
 ```
 
 Expected result:
