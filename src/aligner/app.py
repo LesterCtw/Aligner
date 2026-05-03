@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from aligner.alignment import run_constrained_raft_alignment
+from aligner.app_icon import load_application_icon
 from aligner.export import export_preview_stack
 from aligner.io import load_raw_stack, spacing_to_nm
 from aligner.models import AlignedStack, ProjectConfig, RawStack
@@ -78,6 +79,9 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Aligner")
+        icon = load_application_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
         self.resize(1200, 760)
         self.config = ProjectConfig()
         self.raw_stack: RawStack | None = None
@@ -259,6 +263,9 @@ class MainWindow(QMainWindow):
 
 def run_gui() -> int:
     app = QApplication([])
+    icon = load_application_icon()
+    if not icon.isNull():
+        app.setWindowIcon(icon)
     window = MainWindow()
     window.show()
     return app.exec()

@@ -4,6 +4,18 @@ Aligner is a planned PySide6 desktop tool for FIB serial slice preview alignment
 
 Aligner v1 produces Preview Alignment output for visual stabilization and review. It is not metrology-grade 3D reconstruction.
 
+## Brand And App Icon
+
+The formal product name is `Aligner`.
+
+Windows packaging and runtime window icons must use:
+
+```text
+assets/icons/aligner_icon.ico
+```
+
+The icon follows the shared Project icon style used by Aligner, Denoiser, and Measurer: dark rounded-square background, blue product initial, and the product name below it.
+
 The target workflow is:
 
 1. Load a folder of `.tif` / `.tiff` slice images.
