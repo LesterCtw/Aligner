@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QSlider,
+    QSpinBox,
     QStatusBar,
     QToolBar,
     QVBoxLayout,
@@ -28,6 +29,7 @@ from aligner.export import export_preview_stack
 from aligner.io import load_raw_stack, spacing_to_nm
 from aligner.models import AlignedStack, ProjectConfig, RawStack
 from aligner.preview import generate_orthogonal_previews
+from aligner.threshold import ThresholdStatistics, compute_threshold_statistics
 
 
 def _array_to_display_uint8(array: np.ndarray) -> np.ndarray:
@@ -86,6 +88,11 @@ class MainWindow(QMainWindow):
         self.config = ProjectConfig()
         self.raw_stack: RawStack | None = None
         self.aligned_stack: AlignedStack | None = None
+        self.threshold_statistics: ThresholdStatistics | None = None
+        self.pending_threshold: int | None = None
+        self.applied_threshold: int | None = None
+        self.applied_threshold_rebuilds: list[int] = []
+        self._syncing_threshold_controls = False
 
         toolbar = QToolBar("Main")
         open_button = QPushButton("Open Folder")
@@ -127,6 +134,29 @@ class MainWindow(QMainWindow):
         self.xz_preview = ImageView("Raw XZ")
         self.yz_preview = ImageView("Raw YZ")
 
+        self.threshold_summary = QLabel("Threshold histogram unavailable")
+        self.threshold_summary.setWordWrap(True)
+        self.threshold_slider = QSlider(Qt.Orientation.Horizontal)
+        self.threshold_slider.setEnabled(False)
+        self.threshold_slider.setMinimum(0)
+        self.threshold_slider.setMaximum(0)
+        self.threshold_slider.valueChanged.connect(self._set_pending_threshold_from_slider)
+        self.threshold_value = QSpinBox()
+        self.threshold_value.setEnabled(False)
+        self.threshold_value.setMinimum(0)
+        self.threshold_value.setMaximum(0)
+        self.threshold_value.valueChanged.connect(self._set_pending_threshold_from_input)
+        self.threshold_value.lineEdit().returnPressed.connect(self.apply_threshold)
+        self.apply_threshold_button = QPushButton("Apply")
+        self.apply_threshold_button.setEnabled(False)
+        self.apply_threshold_button.clicked.connect(self.apply_threshold)
+
+        threshold_controls = QHBoxLayout()
+        threshold_controls.addWidget(QLabel("Threshold"))
+        threshold_controls.addWidget(self.threshold_slider, stretch=1)
+        threshold_controls.addWidget(self.threshold_value)
+        threshold_controls.addWidget(self.apply_threshold_button)
+
         previews = QGridLayout()
         previews.addWidget(QLabel("Raw XY"), 0, 0)
         previews.addWidget(QLabel("Raw XZ"), 0, 1)
@@ -146,6 +176,8 @@ class MainWindow(QMainWindow):
 
         root = QVBoxLayout()
         root.addLayout(side_by_side, stretch=1)
+        root.addWidget(self.threshold_summary)
+        root.addLayout(threshold_controls)
         root.addLayout(previews)
         root.addWidget(self.timeline)
 
@@ -176,6 +208,7 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError) as error:
             self.raw_stack = None
             self.aligned_stack = None
+            self._reset_threshold_controls()
             self.timeline.setMaximum(0)
             self.run_button.setEnabled(False)
             self.export_button.setEnabled(False)
@@ -185,6 +218,7 @@ class MainWindow(QMainWindow):
 
         self.config.input_folder = str(folder)
         self.aligned_stack = None
+        self._prepare_threshold_controls()
         self.timeline.setMaximum(max(0, len(self.raw_stack.slices) - 1))
         self.timeline.setValue(0)
         self.run_button.setEnabled(True)
@@ -249,6 +283,92 @@ class MainWindow(QMainWindow):
         stack_label = "aligned" if self.aligned_stack is not None else "raw"
         self.statusBar().showMessage(
             f"Showing {stack_label} slice {slice_index + 1} of {len(self.raw_stack.slices)}"
+        )
+
+    def apply_threshold(self) -> None:
+        if self.pending_threshold is None:
+            return
+
+        self.applied_threshold = self.pending_threshold
+        self.applied_threshold_rebuilds.append(self.applied_threshold)
+        self.statusBar().showMessage(f"Applied threshold {self.applied_threshold}")
+
+    def _prepare_threshold_controls(self) -> None:
+        if self.raw_stack is None:
+            self._reset_threshold_controls()
+            return
+
+        self.threshold_statistics = compute_threshold_statistics(self.raw_stack.data)
+        threshold = self.threshold_statistics.otsu_threshold
+        max_intensity = int(self.threshold_statistics.intensity_values[-1])
+
+        self._syncing_threshold_controls = True
+        try:
+            self.threshold_slider.setRange(0, max_intensity)
+            self.threshold_value.setRange(0, max_intensity)
+            self.threshold_slider.setValue(threshold)
+            self.threshold_value.setValue(threshold)
+        finally:
+            self._syncing_threshold_controls = False
+
+        self.pending_threshold = threshold
+        self.applied_threshold = threshold
+        self.applied_threshold_rebuilds = [threshold]
+        self.threshold_slider.setEnabled(True)
+        self.threshold_value.setEnabled(True)
+        self.apply_threshold_button.setEnabled(True)
+        self.threshold_summary.setText(self._format_threshold_summary(self.threshold_statistics))
+
+    def _reset_threshold_controls(self) -> None:
+        self.threshold_statistics = None
+        self.pending_threshold = None
+        self.applied_threshold = None
+        self.applied_threshold_rebuilds = []
+
+        self._syncing_threshold_controls = True
+        try:
+            self.threshold_slider.setRange(0, 0)
+            self.threshold_value.setRange(0, 0)
+            self.threshold_slider.setValue(0)
+            self.threshold_value.setValue(0)
+        finally:
+            self._syncing_threshold_controls = False
+
+        self.threshold_slider.setEnabled(False)
+        self.threshold_value.setEnabled(False)
+        self.apply_threshold_button.setEnabled(False)
+        self.threshold_summary.setText("Threshold histogram unavailable")
+
+    def _set_pending_threshold_from_slider(self, value: int) -> None:
+        if self._syncing_threshold_controls:
+            return
+
+        self.pending_threshold = value
+        self._syncing_threshold_controls = True
+        try:
+            self.threshold_value.setValue(value)
+        finally:
+            self._syncing_threshold_controls = False
+
+    def _set_pending_threshold_from_input(self, value: int) -> None:
+        if self._syncing_threshold_controls:
+            return
+
+        self.pending_threshold = value
+        self._syncing_threshold_controls = True
+        try:
+            self.threshold_slider.setValue(value)
+        finally:
+            self._syncing_threshold_controls = False
+
+    def _format_threshold_summary(self, statistics: ThresholdStatistics) -> str:
+        occupied = np.flatnonzero(statistics.histogram_counts)
+        min_intensity = int(statistics.intensity_values[occupied[0]])
+        max_intensity = int(statistics.intensity_values[occupied[-1]])
+        voxel_count = int(statistics.histogram_counts.sum())
+        return (
+            f"Histogram: {voxel_count} voxels, intensity {min_intensity:g}-{max_intensity:g}; "
+            f"Otsu threshold: {statistics.otsu_threshold:g}"
         )
 
     def _update_stack_summary(self) -> None:

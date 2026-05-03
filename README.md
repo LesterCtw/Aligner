@@ -65,6 +65,11 @@ Implemented now:
 - Natural file order and physical spacing summary in the UI
 - 2D raw slice viewer with slider navigation
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
+- Threshold histogram statistics for loaded Raw Stacks in original uint8 /
+  uint16 intensity units
+- Otsu default threshold selection after Raw Stack load
+- Threshold slider, numeric input, and Apply / Enter behavior for committing
+  an applied threshold without rebuilding while dragging
 - Identity Preview Stack export from the loaded Raw Stack
 - Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
 - Phase-correlation-only Preview Alignment as a degraded/debug path
@@ -97,6 +102,8 @@ Implemented now:
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
 - Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, UI slice spacing input, TIFF XY pixel size metadata, manual XY fallback, and UI XY summary
+- Behavior tests for threshold histograms, Otsu defaults, pending threshold
+  edits, and explicit Apply / Enter threshold commits
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 - Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
@@ -105,6 +112,7 @@ Implemented now:
 
 Not implemented yet:
 
+- VTK Threshold Iso-surface Preview rendering and interactive 3D camera controls
 - Full v1 Preview Alignment acceptance verification on Windows CUDA
 
 Current acceptance status:
@@ -130,7 +138,10 @@ Current acceptance status:
 - RAFT raw dense flow is compressed to a control grid, clipped, smoothed, and interpolated back before preview warping.
 - The v1 constraint strength is fixed to developer-tuned Balanced in the normal UI.
 - Bad Slice replacement is preview-only. It must preserve slice count, original index, and z position, and it must be recorded in metadata.
-- Orthogonal Preview is the v1 3D preview scope. Volume rendering is out of scope for v1.
+- Threshold Iso-surface Preview is planned as the main 3D preview surface, but
+  the VTK renderer is not implemented yet.
+- Orthogonal Preview remains the supporting XY / XZ / YZ slice inspection surface.
+- Opacity-based volume rendering and transfer-function controls are out of scope for v1.
 - Stack physical spacing is represented by XY pixel size in nm and slice spacing in nm. It supports preview proportions and must not be treated as metrology-grade reconstruction evidence.
 
 See [docs/session-memory.md](docs/session-memory.md) for current discussion state, next open question, and handoff context.

@@ -22,6 +22,7 @@ def test_context_defines_v1_domain_terms() -> None:
         "Alignment-Unusable",
         "RAFT Padding",
         "Aligned Crop Region",
+        "Threshold Iso-surface Preview",
         "Orthogonal Preview",
     ]
 
@@ -40,6 +41,7 @@ def test_readme_documents_v1_runtime_and_scope() -> None:
         "grayscale-to-3-channel",
         "Balanced",
         "Bad Slice replacement is preview-only",
+        "Threshold Iso-surface Preview",
         "Orthogonal Preview",
         "Implemented now:",
         "Not implemented yet:",

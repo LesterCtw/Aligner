@@ -155,3 +155,125 @@ def test_open_folder_flow_uses_xy_pixel_size_control_and_shows_summary(
         assert "XY pixel size: 25 nm" in window.left_panel.text()
     finally:
         window.close()
+
+
+def test_open_folder_flow_computes_default_threshold_after_raw_stack_load(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 4), 10, dtype=np.uint8))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 4), 100, dtype=np.uint8))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+
+        window.load_folder(input_folder)
+
+        assert window.threshold_slider.isEnabled()
+        assert window.threshold_value.isEnabled()
+        assert window.apply_threshold_button.isEnabled()
+        assert window.threshold_slider.value() == 10
+        assert window.threshold_value.value() == 10
+        assert window.applied_threshold == 10
+        assert "Otsu threshold: 10" in window.threshold_summary.text()
+    finally:
+        window.close()
+
+
+def test_threshold_slider_changes_pending_threshold_without_applying(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 4), 10, dtype=np.uint8))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 4), 100, dtype=np.uint8))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+
+        window.threshold_slider.setValue(20)
+
+        assert window.pending_threshold == 20
+        assert window.threshold_value.value() == 20
+        assert window.applied_threshold == 10
+        assert window.applied_threshold_rebuilds == [10]
+    finally:
+        window.close()
+
+
+def test_threshold_numeric_input_changes_pending_threshold_without_applying(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 4), 10, dtype=np.uint8))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 4), 100, dtype=np.uint8))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+
+        window.threshold_value.setValue(30)
+
+        assert window.pending_threshold == 30
+        assert window.threshold_slider.value() == 30
+        assert window.applied_threshold == 10
+        assert window.applied_threshold_rebuilds == [10]
+    finally:
+        window.close()
+
+
+def test_apply_threshold_commits_pending_threshold_for_preview_rebuild(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 4), 10, dtype=np.uint8))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 4), 100, dtype=np.uint8))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+        window.threshold_slider.setValue(40)
+
+        window.apply_threshold_button.click()
+
+        assert window.pending_threshold == 40
+        assert window.applied_threshold == 40
+        assert window.applied_threshold_rebuilds == [10, 40]
+    finally:
+        window.close()
+
+
+def test_enter_in_threshold_numeric_input_applies_pending_threshold(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 4), 10, dtype=np.uint8))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 4), 100, dtype=np.uint8))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+        window.threshold_value.setValue(50)
+
+        window.threshold_value.lineEdit().returnPressed.emit()
+
+        assert window.pending_threshold == 50
+        assert window.applied_threshold == 50
+        assert window.applied_threshold_rebuilds == [10, 50]
+    finally:
+        window.close()

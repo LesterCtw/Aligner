@@ -52,8 +52,14 @@ Aligned Crop Region is the common valid image area shared by all slices after pr
 
 Exported aligned TIFFs use this region to avoid empty borders introduced by shifts or warps, and metadata records the crop box.
 
+## Threshold Iso-surface Preview
+
+Threshold Iso-surface Preview is the planned main 3D preview surface for Raw Stack and Aligned Stack inspection.
+
+It uses a brightness threshold in original image intensity units to define which voxels contribute to the display surface. Threshold selection is separate from Preview Stack export and does not change the original input files.
+
 ## Orthogonal Preview
 
-Orthogonal Preview is the v1 3D preview surface made from XY, XZ, and YZ views of the stack.
+Orthogonal Preview is the supporting XY, XZ, and YZ slice inspection surface.
 
 Before alignment it shows the Raw Stack. After alignment it shows the Aligned Stack in the same preview panel.
