@@ -55,15 +55,18 @@ Implemented now:
 - Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
 - Phase-only Preview Stack export applies a common Aligned Crop Region to exclude invalid shift borders
 - Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
+- RAFT input foundation with stack-level robust range normalization, grayscale-to-3-channel tensor conversion, reflect padding, crop-back, and a mock smoke backend for development
+- RAFT smoke metadata records normalization range, backend name, device/degraded mode, and padding behavior
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
 - Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, and UI slice spacing input
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
+- Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
 
 Not implemented yet:
 
-- RAFT backend
+- Real RAFT backend using `torchvision.models.optical_flow`
 - Constrained local warp
 - Bad slice detection and replacement
 - Full v1 Preview Alignment with constrained RAFT
