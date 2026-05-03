@@ -49,3 +49,17 @@ def test_readme_documents_v1_runtime_and_scope() -> None:
 
     for phrase in required_phrases:
         assert phrase in readme
+
+
+def test_docs_record_vtk_qt_rendering_shell_decision() -> None:
+    readme = read_doc("README.md")
+    context = read_doc("CONTEXT.md")
+    adr = read_doc("docs/adr/0001-vtk-qt-threshold-iso-surface-preview.md")
+
+    assert "VTK + Qt 3D preview rendering shell" in readme
+    assert "full threshold iso-surface extraction is not implemented yet" in readme.lower()
+    assert "VTK + Qt" in context
+    assert "Status: Accepted" in adr
+    assert "Threshold Iso-surface Preview" in adr
+    assert "opacity-based volume rendering" in adr
+    assert "heavier dependency" in adr

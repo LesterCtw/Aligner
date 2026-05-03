@@ -70,6 +70,9 @@ Implemented now:
 - Otsu default threshold selection after Raw Stack load
 - Threshold slider, numeric input, and Apply / Enter behavior for committing
   an applied threshold without rebuilding while dragging
+- VTK + Qt 3D preview rendering shell in the main preview area
+- Main UI layout with left project information, right upper Threshold
+  Iso-surface Preview shell, and right lower supporting Orthogonal Preview
 - Identity Preview Stack export from the loaded Raw Stack
 - Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
 - Phase-correlation-only Preview Alignment as a degraded/debug path
@@ -112,7 +115,8 @@ Implemented now:
 
 Not implemented yet:
 
-- VTK Threshold Iso-surface Preview rendering and interactive 3D camera controls
+- Full threshold iso-surface extraction is not implemented yet
+- Preview volume downsampling / interpolation for large stacks is not implemented yet
 - Full v1 Preview Alignment acceptance verification on Windows CUDA
 
 Current acceptance status:
@@ -139,7 +143,7 @@ Current acceptance status:
 - The v1 constraint strength is fixed to developer-tuned Balanced in the normal UI.
 - Bad Slice replacement is preview-only. It must preserve slice count, original index, and z position, and it must be recorded in metadata.
 - Threshold Iso-surface Preview is planned as the main 3D preview surface, but
-  the VTK renderer is not implemented yet.
+  only the VTK + Qt rendering shell is implemented so far.
 - Orthogonal Preview remains the supporting XY / XZ / YZ slice inspection surface.
 - Opacity-based volume rendering and transfer-function controls are out of scope for v1.
 - Stack physical spacing is represented by XY pixel size in nm and slice spacing in nm. It supports preview proportions and must not be treated as metrology-grade reconstruction evidence.

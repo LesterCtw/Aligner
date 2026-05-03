@@ -31,6 +31,9 @@ Implemented scaffold:
 - Natural file order and physical spacing summary in the UI
 - 2D raw slice viewer with slider navigation
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
+- VTK + Qt 3D preview rendering shell in the main preview area
+- Main UI layout with left project information, right upper Threshold
+  Iso-surface Preview shell, and right lower supporting Orthogonal Preview
 - Identity Preview Stack TIFF export from the loaded Raw Stack
 - Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
 - Phase-correlation-only Preview Alignment as a degraded/debug path
@@ -58,7 +61,7 @@ Implemented scaffold:
 
 Last known verification:
 
-- `uv run pytest`: passed, 54 tests
+- `uv run pytest`: passed, 64 tests
 - `uv run ruff check .`: passed
 - `uv run aligner probe`: passed
 

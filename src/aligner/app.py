@@ -30,6 +30,7 @@ from aligner.io import load_raw_stack, spacing_to_nm
 from aligner.models import AlignedStack, ProjectConfig, RawStack
 from aligner.preview import generate_orthogonal_previews
 from aligner.threshold import ThresholdStatistics, compute_threshold_statistics
+from aligner.vtk_preview import ThresholdIsoSurfacePreview
 
 
 def _array_to_display_uint8(array: np.ndarray) -> np.ndarray:
@@ -133,6 +134,7 @@ class MainWindow(QMainWindow):
         self.xy_preview = ImageView("Raw XY")
         self.xz_preview = ImageView("Raw XZ")
         self.yz_preview = ImageView("Raw YZ")
+        self.threshold_iso_surface_preview = ThresholdIsoSurfacePreview()
 
         self.threshold_summary = QLabel("Threshold histogram unavailable")
         self.threshold_summary.setWordWrap(True)
@@ -165,21 +167,28 @@ class MainWindow(QMainWindow):
         previews.addWidget(self.xz_preview, 1, 1)
         previews.addWidget(self.yz_preview, 1, 2)
 
-        side_by_side = QHBoxLayout()
-        side_by_side.addWidget(self.left_panel)
-        side_by_side.addWidget(self.viewer, stretch=1)
+        self.orthogonal_preview_panel = QWidget()
+        self.orthogonal_preview_panel.setObjectName("orthogonalPreviewPanel")
+        supporting_previews = QVBoxLayout()
+        supporting_previews.addWidget(self.viewer, stretch=1)
+        supporting_previews.addLayout(previews)
+        self.orthogonal_preview_panel.setLayout(supporting_previews)
 
         self.timeline = QSlider(Qt.Orientation.Horizontal)
         self.timeline.setMinimum(0)
         self.timeline.setMaximum(0)
         self.timeline.valueChanged.connect(self.show_slice)
 
-        root = QVBoxLayout()
-        root.addLayout(side_by_side, stretch=1)
-        root.addWidget(self.threshold_summary)
-        root.addLayout(threshold_controls)
-        root.addLayout(previews)
-        root.addWidget(self.timeline)
+        self.right_preview_layout = QVBoxLayout()
+        self.right_preview_layout.addWidget(self.threshold_iso_surface_preview, stretch=2)
+        self.right_preview_layout.addWidget(self.threshold_summary)
+        self.right_preview_layout.addLayout(threshold_controls)
+        self.right_preview_layout.addWidget(self.orthogonal_preview_panel, stretch=1)
+        self.right_preview_layout.addWidget(self.timeline)
+
+        root = QHBoxLayout()
+        root.addWidget(self.left_panel)
+        root.addLayout(self.right_preview_layout, stretch=1)
 
         container = QWidget()
         container.setLayout(root)

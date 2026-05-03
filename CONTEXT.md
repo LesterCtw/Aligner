@@ -58,6 +58,8 @@ Threshold Iso-surface Preview is the planned main 3D preview surface for Raw Sta
 
 It uses a brightness threshold in original image intensity units to define which voxels contribute to the display surface. Threshold selection is separate from Preview Stack export and does not change the original input files.
 
+VTK + Qt is the selected rendering path for this preview because it provides a real interactive 3D camera and scientific iso-surface rendering primitives inside the PySide6 desktop app. The trade-off is a heavier dependency and stricter GUI runtime behavior than the existing 2D QLabel/QPixmap previews.
+
 ## Orthogonal Preview
 
 Orthogonal Preview is the supporting XY, XZ, and YZ slice inspection surface.
