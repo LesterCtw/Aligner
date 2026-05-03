@@ -148,9 +148,9 @@ def test_bad_slice_replacement_requires_raft_sanity_confirmation() -> None:
 
     aligned = run_constrained_raft_alignment(stack)
 
-    assert aligned.slices[1].quality_label == "suspicious"
-    assert aligned.slices[1].display_source == "original"
-    assert aligned.slices[1].interpolated_from is None
+    assert aligned.slices[1].quality_label == "alignment_unusable"
+    assert aligned.slices[1].display_source == "interpolated"
+    assert aligned.slices[1].interpolated_from == (0, 2)
 
 
 def test_confirmed_bad_slice_is_replaced_in_preview_stack() -> None:
@@ -201,3 +201,76 @@ def test_confirmed_bad_slice_is_replaced_in_preview_stack() -> None:
     np.testing.assert_array_equal(aligned.data[1], base)
     np.testing.assert_array_equal(aligned.data[2], base)
     np.testing.assert_array_equal(stack.data[1], bad_candidate)
+
+
+def test_phase_alignment_ignores_low_confidence_outlier_edges_in_global_solve() -> None:
+    stack = _raw_stack_with_isolated_bad_slices(slice_count=12, bad_indices={5})
+
+    aligned = run_phase_alignment(stack)
+
+    normal_positions = [
+        position
+        for index, position in enumerate(aligned.positions)
+        if index not in {5}
+    ]
+    assert max(abs(x) for x, _y in normal_positions) < 12.0
+    assert max(abs(y) for _x, y in normal_positions) < 12.0
+    assert aligned.slices[5].quality_label == "suspicious"
+
+
+def test_degraded_mock_alignment_replaces_isolated_phase_outliers() -> None:
+    stack = _raw_stack_with_isolated_bad_slices(slice_count=12, bad_indices={5})
+
+    aligned = run_constrained_raft_alignment(stack)
+
+    assert aligned.local_alignment is not None
+    assert aligned.local_alignment.backend_name == "mock_raft"
+    assert aligned.local_alignment.degraded_mode is True
+    assert aligned.slices[5].quality_label == "alignment_unusable"
+    assert aligned.slices[5].display_source == "interpolated"
+    assert aligned.slices[5].interpolated_from == (4, 6)
+    assert [record.index for record in aligned.slices] == list(range(12))
+
+
+def _raw_stack_with_isolated_bad_slices(
+    *,
+    slice_count: int,
+    bad_indices: set[int],
+) -> RawStack:
+    height = 96
+    width = 96
+    y, x = np.mgrid[0:height, 0:width]
+    base = np.zeros((height, width), dtype=np.float32)
+    base += 11000 * np.exp(-(((x - 28) ** 2) / (2 * 8**2) + ((y - 31) ** 2) / (2 * 13**2)))
+    base += 9000 * np.exp(-(((x - 67) ** 2) / (2 * 11**2) + ((y - 61) ** 2) / (2 * 9**2)))
+    base += 4200 * (((x > 44) & (x < 56) & (y > 16) & (y < 78)).astype(np.float32))
+    base += 2300 * (np.sin(x / 7.0) + 1.0)
+    base += 1600 * (np.cos((x + y) / 12.0) + 1.0)
+
+    rng = np.random.default_rng(20260503)
+    images = []
+    for index in range(slice_count):
+        image = np.roll(base, shift=(index, index), axis=(0, 1)).copy()
+        image += rng.normal(0, 120, size=image.shape)
+        if index in bad_indices:
+            image = rng.normal(12000, 4200, size=image.shape)
+            image[24:72, 39:58] += 8000
+        images.append(np.clip(image, 0, 65535).astype(np.uint16))
+
+    return RawStack(
+        data=np.stack(images, axis=0),
+        slices=[
+            SliceRecord(
+                index=index,
+                filename=f"slice_{index:03d}.tif",
+                path=f"/tmp/slice_{index:03d}.tif",
+                z_nm=float(index * 10),
+                width=width,
+                height=height,
+                dtype="uint16",
+                quality_label="raw",
+            )
+            for index in range(slice_count)
+        ],
+        slice_spacing_nm=10.0,
+    )

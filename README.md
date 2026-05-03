@@ -54,6 +54,8 @@ Implemented now:
 - Phase-correlation-only Preview Alignment as a degraded/debug path
 - Pairwise phase correlation edges for slice distances 1 to 3 with dx, dy, response, weight, and method metadata
 - Weighted registration graph solve for non-cumulative global coarse XY positions
+- Robust graph solve now ignores very low-confidence phase edges so isolated
+  outlier slices do not create large position spikes
 - Phase-only Aligned Stack generation and display in the existing Orthogonal Preview panel
 - Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
 - Phase-only Preview Stack export applies a common Aligned Crop Region to exclude invalid shift borders
@@ -67,8 +69,12 @@ Implemented now:
 - Run Alignment now executes phase correlation followed by constrained RAFT local alignment and shows the constrained RAFT Aligned Stack in the Orthogonal Preview panel
 - Constrained RAFT Preview Stack export metadata records RAFT backend, degraded mode, working resolution scale, RAFT normalization range, RAFT Padding/crop-back provenance, Balanced constraint parameters, control grid shape, and raw/constrained flow displacement maxima
 - Internal Bad Slice detection and preview-only replacement MVS
-- Phase graph confidence can mark suspicious slices without replacing them immediately
+- Phase graph confidence can mark suspicious slices without replacing normal
+  slices that merely have low absolute response values
 - RAFT/control-grid sanity is required before a suspicious slice becomes Alignment-Unusable
+- The degraded mock backend can use phase bridge evidence as a mock sanity
+  signal so macOS smoke data can exercise Bad Slice replacement without
+  pretending to be full RAFT acceptance
 - Confirmed Bad Slices are replaced only in the preview stack by interpolation from surrounding good slices
 - Bad Slice replacement preserves slice count, original index, z position, and original input files
 - Preview Stack export metadata records per-slice output dimensions, Bad Slice status, display source, and replacement source slices
@@ -120,13 +126,18 @@ the optional real torchvision backend.
 Current Run Alignment behavior:
 
 1. Compute coarse global XY positions with phase correlation and graph solving.
-2. Run the selected RAFT backend on the phase-aligned stack.
-3. Convert raw dense flow into a low-resolution control grid.
-4. Clip displacement, smooth the grid, and interpolate back to full image size.
-5. Warp preview slices only with the constrained flow.
-6. Mark low-confidence phase graph slices as suspicious.
-7. Confirm Alignment-Unusable slices only when RAFT/control-grid sanity stats also fail.
-8. Replace confirmed Bad Slices in the preview stack by interpolation from surrounding good slices.
+2. Ignore very low-confidence phase edges during the global solve so isolated
+   outliers do not pull later slices into a false drift.
+3. Run the selected RAFT backend on the phase-aligned stack.
+4. Convert raw dense flow into a low-resolution control grid.
+5. Clip displacement, smooth the grid, and interpolate back to full image size.
+6. Warp preview slices only with the constrained flow.
+7. Mark low-confidence phase graph slices as suspicious using relative
+   confidence and bridge evidence, not a brittle absolute response alone.
+8. Confirm Alignment-Unusable slices when RAFT/control-grid sanity stats fail.
+   In the degraded mock backend only, phase bridge evidence acts as a mock
+   sanity signal for macOS smoke testing.
+9. Replace confirmed Bad Slices in the preview stack by interpolation from surrounding good slices.
 
 Balanced is fixed in the normal UI. There are no user tuning controls.
 Bad Slice replacement is also internal in the normal UI. There are no Bad Slice labels,
