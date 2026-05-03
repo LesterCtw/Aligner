@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
+from numpy.typing import NDArray
+
 
 @dataclass(slots=True)
 class SliceRecord:
@@ -17,6 +20,13 @@ class SliceRecord:
     y: float = 0.0
     display_source: str = "original"
     interpolated_from: tuple[int, int] | None = None
+
+
+@dataclass(slots=True)
+class RawStack:
+    data: NDArray[np.integer]
+    slices: list[SliceRecord]
+    slice_spacing_nm: float
 
 
 @dataclass(slots=True)
@@ -44,4 +54,3 @@ class ProjectConfig:
     raft_strength: str = "normal"
     auto_replace_bad_slices: bool = True
     preserve_slice_count: bool = True
-

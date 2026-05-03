@@ -39,7 +39,14 @@ Implemented now:
 - TIFF file discovery
 - Natural file sorting
 - Slice spacing unit conversion to nm
+- Validated Raw Stack loading for 8-bit and 16-bit single-channel TIFF files
+- Raw Stack metadata records for filename, original index, z position, size, and dtype
+- PySide6 Open Folder flow for loading a Raw Stack into the UI
+- Natural file order summary in the UI
+- 2D raw slice viewer with slider navigation
+- Raw XY / XZ / YZ Orthogonal Preview generation and display
 - Basic tests for discovery, sorting, and unit conversion
+- Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
 
 Not implemented yet:
 
@@ -50,7 +57,7 @@ Not implemented yet:
 - Bad slice detection and replacement
 - Preview stack export
 - Metadata export
-- Orthogonal Preview
+- Aligned Orthogonal Preview
 
 ## Locked Product Decisions
 
