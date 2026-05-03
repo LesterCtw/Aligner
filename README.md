@@ -71,6 +71,11 @@ Implemented now:
 - Threshold slider, numeric input, and Apply / Enter behavior for committing
   an applied threshold without rebuilding while dragging
 - VTK + Qt 3D preview rendering shell in the main preview area
+- Raw Stack threshold iso-surface rendering from a display-only preview volume
+- Preview volume generation uses XY pixel size and slice spacing to preserve
+  physical preview proportions
+- Preview volume generation can downsample/interpolate Z slices for display
+  while preserving XY detail first
 - Main UI layout with left project information, right upper Threshold
   Iso-surface Preview shell, and right lower supporting Orthogonal Preview
 - Identity Preview Stack export from the loaded Raw Stack
@@ -107,6 +112,8 @@ Implemented now:
 - Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, UI slice spacing input, TIFF XY pixel size metadata, manual XY fallback, and UI XY summary
 - Behavior tests for threshold histograms, Otsu defaults, pending threshold
   edits, and explicit Apply / Enter threshold commits
+- Behavior tests for Raw Stack threshold iso-surface preview volume spacing,
+  display-only non-mutation behavior, and applied-threshold preview rebuilds
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 - Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
@@ -115,8 +122,8 @@ Implemented now:
 
 Not implemented yet:
 
-- Full threshold iso-surface extraction is not implemented yet
-- Preview volume downsampling / interpolation for large stacks is not implemented yet
+- Aligned Stack threshold iso-surface rendering after Run Alignment is not
+  implemented yet
 - Full v1 Preview Alignment acceptance verification on Windows CUDA
 
 Current acceptance status:
@@ -142,8 +149,9 @@ Current acceptance status:
 - RAFT raw dense flow is compressed to a control grid, clipped, smoothed, and interpolated back before preview warping.
 - The v1 constraint strength is fixed to developer-tuned Balanced in the normal UI.
 - Bad Slice replacement is preview-only. It must preserve slice count, original index, and z position, and it must be recorded in metadata.
-- Threshold Iso-surface Preview is planned as the main 3D preview surface, but
-  only the VTK + Qt rendering shell is implemented so far.
+- Threshold Iso-surface Preview is the main 3D preview surface. Raw Stack
+  threshold iso-surface rendering is implemented; Aligned Stack 3D rendering
+  after Run Alignment remains follow-up work.
 - Orthogonal Preview remains the supporting XY / XZ / YZ slice inspection surface.
 - Opacity-based volume rendering and transfer-function controls are out of scope for v1.
 - Stack physical spacing is represented by XY pixel size in nm and slice spacing in nm. It supports preview proportions and must not be treated as metrology-grade reconstruction evidence.

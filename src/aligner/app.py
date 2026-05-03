@@ -28,7 +28,11 @@ from aligner.app_icon import load_application_icon
 from aligner.export import export_preview_stack
 from aligner.io import load_raw_stack, spacing_to_nm
 from aligner.models import AlignedStack, ProjectConfig, RawStack
-from aligner.preview import generate_orthogonal_previews
+from aligner.preview import (
+    ThresholdPreviewVolume,
+    generate_orthogonal_previews,
+    generate_threshold_preview_volume,
+)
 from aligner.threshold import ThresholdStatistics, compute_threshold_statistics
 from aligner.vtk_preview import ThresholdIsoSurfacePreview
 
@@ -89,6 +93,7 @@ class MainWindow(QMainWindow):
         self.config = ProjectConfig()
         self.raw_stack: RawStack | None = None
         self.aligned_stack: AlignedStack | None = None
+        self.threshold_preview_volume: ThresholdPreviewVolume | None = None
         self.threshold_statistics: ThresholdStatistics | None = None
         self.pending_threshold: int | None = None
         self.applied_threshold: int | None = None
@@ -217,7 +222,9 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError) as error:
             self.raw_stack = None
             self.aligned_stack = None
+            self.threshold_preview_volume = None
             self._reset_threshold_controls()
+            self.threshold_iso_surface_preview.clear_preview()
             self.timeline.setMaximum(0)
             self.run_button.setEnabled(False)
             self.export_button.setEnabled(False)
@@ -228,6 +235,7 @@ class MainWindow(QMainWindow):
         self.config.input_folder = str(folder)
         self.aligned_stack = None
         self._prepare_threshold_controls()
+        self._prepare_raw_stack_iso_surface_preview()
         self.timeline.setMaximum(max(0, len(self.raw_stack.slices) - 1))
         self.timeline.setValue(0)
         self.run_button.setEnabled(True)
@@ -300,6 +308,7 @@ class MainWindow(QMainWindow):
 
         self.applied_threshold = self.pending_threshold
         self.applied_threshold_rebuilds.append(self.applied_threshold)
+        self._render_raw_stack_iso_surface_preview()
         self.statusBar().showMessage(f"Applied threshold {self.applied_threshold}")
 
     def _prepare_threshold_controls(self) -> None:
@@ -347,6 +356,25 @@ class MainWindow(QMainWindow):
         self.threshold_value.setEnabled(False)
         self.apply_threshold_button.setEnabled(False)
         self.threshold_summary.setText("Threshold histogram unavailable")
+
+    def _prepare_raw_stack_iso_surface_preview(self) -> None:
+        if self.raw_stack is None:
+            self.threshold_preview_volume = None
+            self.threshold_iso_surface_preview.clear_preview()
+            return
+
+        self.threshold_preview_volume = generate_threshold_preview_volume(self.raw_stack)
+        self._render_raw_stack_iso_surface_preview()
+
+    def _render_raw_stack_iso_surface_preview(self) -> None:
+        if self.threshold_preview_volume is None or self.applied_threshold is None:
+            return
+
+        self.threshold_iso_surface_preview.show_iso_surface(
+            self.threshold_preview_volume,
+            threshold=self.applied_threshold,
+            source_label="Raw Stack",
+        )
 
     def _set_pending_threshold_from_slider(self, value: int) -> None:
         if self._syncing_threshold_controls:

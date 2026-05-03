@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import os
 
+import numpy as np
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
 from aligner.app import MainWindow  # noqa: E402
+from aligner.preview import ThresholdPreviewVolume  # noqa: E402
 from aligner.vtk_preview import ThresholdIsoSurfacePreview  # noqa: E402
 
 
@@ -45,3 +48,22 @@ def test_main_window_shows_vtk_preview_shell_above_supporting_orthogonal_preview
         )
     finally:
         window.close()
+
+
+def test_vtk_preview_accepts_threshold_iso_surface_volume() -> None:
+    get_qapp()
+    preview = ThresholdIsoSurfacePreview()
+    volume = ThresholdPreviewVolume(
+        data=np.zeros((2, 3, 4), dtype=np.uint8),
+        spacing_nm=(5.0, 5.0, 20.0),
+        source_shape=(2, 3, 4),
+    )
+    try:
+        preview.show_iso_surface(volume, threshold=25, source_label="Raw Stack")
+
+        assert preview.current_source_label() == "Raw Stack"
+        assert preview.current_threshold() == 25
+        assert preview.current_spacing_nm() == (5.0, 5.0, 20.0)
+        assert preview.current_data_shape() == (2, 3, 4)
+    finally:
+        preview.close()

@@ -57,7 +57,8 @@ def test_docs_record_vtk_qt_rendering_shell_decision() -> None:
     adr = read_doc("docs/adr/0001-vtk-qt-threshold-iso-surface-preview.md")
 
     assert "VTK + Qt 3D preview rendering shell" in readme
-    assert "full threshold iso-surface extraction is not implemented yet" in readme.lower()
+    assert "Raw Stack threshold iso-surface rendering from a display-only preview volume" in readme
+    assert "Aligned Stack threshold iso-surface rendering after Run Alignment" in readme
     assert "VTK + Qt" in context
     assert "Status: Accepted" in adr
     assert "Threshold Iso-surface Preview" in adr

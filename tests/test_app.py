@@ -183,6 +183,27 @@ def test_open_folder_flow_computes_default_threshold_after_raw_stack_load(
         window.close()
 
 
+def test_open_folder_flow_prepares_raw_stack_iso_surface_preview(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 4), 10, dtype=np.uint8))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 4), 100, dtype=np.uint8))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+
+        assert window.threshold_iso_surface_preview.current_source_label() == "Raw Stack"
+        assert window.threshold_iso_surface_preview.current_threshold() == 10
+        assert window.threshold_iso_surface_preview.current_spacing_nm() == (25.0, 25.0, 10.0)
+    finally:
+        window.close()
+
+
 def test_threshold_slider_changes_pending_threshold_without_applying(
     tmp_path: Path,
 ) -> None:
@@ -251,6 +272,32 @@ def test_apply_threshold_commits_pending_threshold_for_preview_rebuild(
         assert window.pending_threshold == 40
         assert window.applied_threshold == 40
         assert window.applied_threshold_rebuilds == [10, 40]
+    finally:
+        window.close()
+
+
+def test_applied_threshold_rebuilds_raw_stack_iso_surface_preview(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 4), 10, dtype=np.uint8))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 4), 100, dtype=np.uint8))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+
+        window.threshold_slider.setValue(40)
+
+        assert window.threshold_iso_surface_preview.current_threshold() == 10
+
+        window.apply_threshold_button.click()
+
+        assert window.threshold_iso_surface_preview.current_source_label() == "Raw Stack"
+        assert window.threshold_iso_surface_preview.current_threshold() == 40
     finally:
         window.close()
 
