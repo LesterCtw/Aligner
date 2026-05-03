@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 
 import numpy as np
@@ -19,8 +20,10 @@ from aligner.raft import (
     BALANCED_RAFT_CONSTRAINTS,
     RaftAdapterMetadata,
     RaftFlowResult,
+    TorchvisionRaftUnavailableError,
     constrain_raft_flow,
     run_mock_raft_smoke_path,
+    run_torchvision_raft_flow,
 )
 
 
@@ -78,7 +81,7 @@ def run_constrained_raft_alignment(
             ),
         )
 
-    provider = raft_flow_provider or _run_mock_raft_flow
+    provider = raft_flow_provider or _select_default_raft_flow_provider()
     local_stack = RawStack(
         data=phase_aligned.data,
         slices=phase_aligned.slices,
@@ -396,6 +399,42 @@ def _run_mock_raft_flow(
         reference_index=reference_index,
         moving_index=moving_index,
     )
+
+
+def _run_torchvision_raft_flow(
+    stack: RawStack,
+    reference_index: int,
+    moving_index: int,
+) -> RaftFlowResult:
+    return run_torchvision_raft_flow(
+        stack,
+        reference_index=reference_index,
+        moving_index=moving_index,
+    )
+
+
+def _select_default_raft_flow_provider():
+    backend = os.environ.get("ALIGNER_RAFT_BACKEND", "mock").strip().lower()
+    if backend in {"mock", "mock_raft", "degraded"}:
+        return _run_mock_raft_flow
+    if backend in {"torchvision", "real", "cuda"}:
+        return _run_torchvision_raft_flow
+    if backend == "auto":
+        return _run_auto_raft_flow
+    raise ValueError(
+        "ALIGNER_RAFT_BACKEND must be one of: mock, torchvision, auto."
+    )
+
+
+def _run_auto_raft_flow(
+    stack: RawStack,
+    reference_index: int,
+    moving_index: int,
+) -> RaftFlowResult:
+    try:
+        return _run_torchvision_raft_flow(stack, reference_index, moving_index)
+    except TorchvisionRaftUnavailableError:
+        return _run_mock_raft_flow(stack, reference_index, moving_index)
 
 
 def _warp_image_with_flow(

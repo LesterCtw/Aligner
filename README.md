@@ -22,6 +22,9 @@ Full v1 acceptance targets Windows 11 + NVIDIA CUDA GPU.
 
 macOS is for development and tiny smoke/mock checks only. A macOS run can verify scaffold behavior and small mocked paths, but it is not the full RAFT acceptance environment.
 
+The Windows CUDA acceptance workflow is documented in
+[docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md).
+
 ## Current Status
 
 This repository is initialized as a Python project scaffold.
@@ -57,6 +60,8 @@ Implemented now:
 - Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
 - RAFT input foundation with stack-level robust range normalization, grayscale-to-3-channel tensor conversion, reflect padding, crop-back, and a mock smoke backend for development
 - RAFT smoke metadata records normalization range, backend name, device/degraded mode, and padding behavior
+- Optional real RAFT adapter using `torchvision.models.optical_flow`
+- RAFT backend selection through `ALIGNER_RAFT_BACKEND=mock|torchvision|auto`
 - Constrained RAFT local alignment MVS using small/mock RAFT flow inputs
 - Balanced constrained flow parameters fixed at max displacement 4 px, 64 px control grid spacing, smoothing sigma 1 grid cell, and working scale 1.0
 - Run Alignment now executes phase correlation followed by constrained RAFT local alignment and shows the constrained RAFT Aligned Stack in the Orthogonal Preview panel
@@ -78,8 +83,17 @@ Implemented now:
 
 Not implemented yet:
 
-- Real RAFT backend using `torchvision.models.optical_flow`
-- Full v1 Preview Alignment with real constrained RAFT on Windows CUDA
+- Full v1 Preview Alignment acceptance verification on Windows CUDA
+
+Current acceptance status:
+
+- Real RAFT implementation work is tracked in
+  [#13](https://github.com/LesterCtw/Aligner/issues/13).
+- Final Windows CUDA acceptance remains tracked in
+  [#12](https://github.com/LesterCtw/Aligner/issues/12).
+- macOS cannot verify CUDA execution. The remaining required check is to run
+  `ALIGNER_RAFT_BACKEND=torchvision` on Windows 11 with an NVIDIA CUDA GPU and
+  inspect the exported TIFF sequence plus metadata.
 
 ## Locked Product Decisions
 
@@ -98,14 +112,15 @@ Not implemented yet:
 
 See [docs/session-memory.md](docs/session-memory.md) for current discussion state, next open question, and handoff context.
 
-## Constrained RAFT MVS
+## Constrained RAFT Workflow
 
-The current constrained RAFT path is an MVS for local alignment behavior, not the final full v1 RAFT backend.
+The constrained RAFT path can run with either the lightweight mock backend or
+the optional real torchvision backend.
 
 Current Run Alignment behavior:
 
 1. Compute coarse global XY positions with phase correlation and graph solving.
-2. Run the current RAFT adapter smoke path on the phase-aligned stack.
+2. Run the selected RAFT backend on the phase-aligned stack.
 3. Convert raw dense flow into a low-resolution control grid.
 4. Clip displacement, smooth the grid, and interpolate back to full image size.
 5. Warp preview slices only with the constrained flow.
@@ -116,6 +131,14 @@ Current Run Alignment behavior:
 Balanced is fixed in the normal UI. There are no user tuning controls.
 Bad Slice replacement is also internal in the normal UI. There are no Bad Slice labels,
 manual override controls, or replacement controls in the normal UI.
+
+Backend selection:
+
+- `ALIGNER_RAFT_BACKEND=mock` is the default lightweight development path.
+- `ALIGNER_RAFT_BACKEND=torchvision` forces the real
+  `torchvision.models.optical_flow` backend and requires CUDA for full v1.
+- `ALIGNER_RAFT_BACKEND=auto` attempts the real backend first and falls back to
+  the mock backend only when the real runtime is unavailable.
 
 Current Balanced values for 1024 x 1024 FIB/SEM preview alignment:
 
@@ -135,9 +158,11 @@ Trade-off:
 
 - This protects structure from over-warping, but it may under-correct real local deformation larger than 4 px. That is intentional for v1 preview alignment because Aligner must not make metrology-grade deformation claims.
 
-## Real RAFT Backend Build Notes
+## Real RAFT Backend Runtime Notes
 
-The real backend should target `torchvision.models.optical_flow`.
+The real backend targets `torchvision.models.optical_flow`. The adapter is
+implemented, but full acceptance still needs to be run on Windows 11 with an
+NVIDIA CUDA GPU.
 
 Recommended build path for full v1:
 
@@ -149,15 +174,32 @@ Recommended build path for full v1:
    uv run python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
    ```
 
-4. Implement a real adapter around `torchvision.models.optical_flow.raft_large` or `raft_small`.
-5. Convert Aligner's normalized grayscale-to-3-channel tensors to Torch tensors with batch shape `(N, 3, H, W)`.
-6. Keep RAFT Padding internal so `H` and `W` are divisible by 8 before model inference.
-7. Use the final flow tensor from RAFT's output list. Torchvision returns flow in pixel units with shape `(N, 2, H, W)`.
-8. Crop flow back to the original image extent.
-9. Pass the cropped raw dense flow through the existing constrained flow pipeline before any preview warp.
-10. Record backend name, device, degraded/full mode, working scale, padding, crop, and Balanced constraint parameters in metadata.
+4. Force the real backend with `ALIGNER_RAFT_BACKEND=torchvision`.
+5. Launch the GUI and run the workflow from
+   [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md).
+
+The real adapter converts Aligner's normalized grayscale-to-3-channel tensors
+to Torch tensors with batch shape `(N, 3, H, W)`, rescales the values to the
+`[-1, 1]` interval expected by torchvision RAFT, keeps RAFT Padding internal,
+uses the final flow tensor from RAFT's output list, crops flow back to the
+original image extent, and passes the cropped raw dense flow through the
+existing constrained flow pipeline before any preview warp.
+
+Export metadata records backend name, device, degraded/full mode, working
+scale, padding, crop, and Balanced constraint parameters.
 
 Do not wire raw RAFT dense flow directly to image warping.
+
+To force the real backend for Windows CUDA acceptance:
+
+```powershell
+$env:ALIGNER_RAFT_BACKEND = "torchvision"
+uv run aligner gui
+```
+
+The default backend remains `mock` for lightweight macOS development. The
+`auto` backend attempts real torchvision RAFT first and falls back to the mock
+path only when the real runtime is unavailable.
 
 ## Development
 

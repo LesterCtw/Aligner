@@ -4,12 +4,14 @@ import numpy as np
 
 from aligner.raft import (
     BALANCED_RAFT_CONSTRAINTS,
+    TorchvisionRaftUnavailableError,
     constrain_raft_flow,
     crop_raft_flow_to_original,
     grayscale_to_raft_tensor,
     normalize_stack_for_raft,
     pad_raft_tensor_to_multiple,
     run_mock_raft_smoke_path,
+    run_torchvision_raft_flow,
 )
 from aligner.models import RawStack, SliceRecord
 
@@ -130,3 +132,161 @@ def test_constrained_raft_flow_preserves_shape_and_clips_balanced_displacement()
     assert constrained.metadata.control_grid_shape == (1, 1)
     magnitude = np.sqrt(np.sum(constrained.flow**2, axis=0))
     assert float(np.max(magnitude)) <= BALANCED_RAFT_CONSTRAINTS.max_displacement_px
+
+
+def test_torchvision_raft_flow_returns_cropped_cuda_flow_and_metadata() -> None:
+    data = np.stack(
+        [
+            np.arange(15, dtype=np.uint16).reshape(3, 5),
+            np.arange(15, 30, dtype=np.uint16).reshape(3, 5),
+        ],
+        axis=0,
+    )
+    stack = RawStack(
+        data=data,
+        slices=[
+            SliceRecord(0, "slice_0.tif", "/tmp/slice_0.tif", 0.0, 5, 3, "uint16", "raw"),
+            SliceRecord(1, "slice_1.tif", "/tmp/slice_1.tif", 10.0, 5, 3, "uint16", "raw"),
+        ],
+        slice_spacing_nm=10.0,
+    )
+    torch = _FakeTorch(cuda_available=True)
+    optical_flow = _FakeOpticalFlow()
+
+    result = run_torchvision_raft_flow(
+        stack,
+        reference_index=0,
+        moving_index=1,
+        torch_module=torch,
+        optical_flow_module=optical_flow,
+    )
+
+    assert result.flow.shape == (2, 3, 5)
+    assert result.flow.dtype == np.float32
+    np.testing.assert_array_equal(result.flow, np.ones((2, 3, 5), dtype=np.float32))
+    assert result.metadata.backend_name == "torchvision.raft_large"
+    assert result.metadata.device == "cuda"
+    assert result.metadata.degraded_mode is False
+    assert result.metadata.padding.padded_width == 8
+    assert result.metadata.crop_width == 5
+    assert optical_flow.model.used_device == "cuda"
+    assert optical_flow.model.saw_rescaled_inputs is True
+
+
+def test_torchvision_raft_flow_requires_cuda_for_full_backend() -> None:
+    data = np.zeros((2, 3, 5), dtype=np.uint16)
+    stack = RawStack(
+        data=data,
+        slices=[
+            SliceRecord(0, "slice_0.tif", "/tmp/slice_0.tif", 0.0, 5, 3, "uint16", "raw"),
+            SliceRecord(1, "slice_1.tif", "/tmp/slice_1.tif", 10.0, 5, 3, "uint16", "raw"),
+        ],
+        slice_spacing_nm=10.0,
+    )
+
+    try:
+        run_torchvision_raft_flow(
+            stack,
+            torch_module=_FakeTorch(cuda_available=False),
+            optical_flow_module=_FakeOpticalFlow(),
+        )
+    except TorchvisionRaftUnavailableError as error:
+        assert "CUDA is required" in str(error)
+    else:
+        raise AssertionError("Expected CUDA requirement error.")
+
+
+class _FakeTensor:
+    def __init__(self, array: np.ndarray) -> None:
+        self.array = np.asarray(array, dtype=np.float32)
+
+    @property
+    def shape(self):
+        return self.array.shape
+
+    def __getitem__(self, item):
+        return _FakeTensor(self.array[item])
+
+    def unsqueeze(self, axis: int):
+        return _FakeTensor(np.expand_dims(self.array, axis=axis))
+
+    def to(self, _device: str):
+        return self
+
+    def mul(self, value: float):
+        return _FakeTensor(self.array * value)
+
+    def sub(self, value: float):
+        return _FakeTensor(self.array - value)
+
+    def detach(self):
+        return self
+
+    def numpy(self):
+        return self.array
+
+
+class _FakeInferenceMode:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, _exc_type, _exc, _traceback):
+        return False
+
+
+class _FakeTorch:
+    def __init__(self, *, cuda_available: bool) -> None:
+        self.cuda = _FakeCuda(cuda_available)
+
+    def from_numpy(self, array: np.ndarray):
+        return _FakeTensor(array)
+
+    def inference_mode(self):
+        return _FakeInferenceMode()
+
+
+class _FakeCuda:
+    def __init__(self, available: bool) -> None:
+        self._available = available
+
+    def is_available(self) -> bool:
+        return self._available
+
+
+class _FakeWeights:
+    DEFAULT = object()
+
+
+class _FakeModel:
+    def __init__(self) -> None:
+        self.used_device = ""
+        self.saw_rescaled_inputs = False
+
+    def to(self, device: str):
+        self.used_device = device
+        return self
+
+    def eval(self):
+        return self
+
+    def __call__(self, reference: _FakeTensor, moving: _FakeTensor):
+        self.saw_rescaled_inputs = bool(
+            np.min(reference.array) >= -1.0
+            and np.max(reference.array) <= 1.0
+            and np.min(moving.array) >= -1.0
+            and np.max(moving.array) <= 1.0
+        )
+        _, _, height, width = reference.shape
+        return [_FakeTensor(np.ones((1, 2, height, width), dtype=np.float32))]
+
+
+class _FakeOpticalFlow:
+    Raft_Large_Weights = _FakeWeights
+
+    def __init__(self) -> None:
+        self.model = _FakeModel()
+
+    def raft_large(self, *, weights, progress: bool):
+        assert weights is _FakeWeights.DEFAULT
+        assert progress is False
+        return self.model

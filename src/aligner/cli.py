@@ -24,7 +24,26 @@ def probe() -> int:
         print("Missing:", ", ".join(missing))
         return 1
     print("Core dependencies available.")
+    _print_raft_runtime_probe()
     return 0
+
+
+def _print_raft_runtime_probe() -> None:
+    if (
+        importlib.util.find_spec("torch") is None
+        or importlib.util.find_spec("torchvision") is None
+    ):
+        print("Optional RAFT backend unavailable: torch/torchvision not installed.")
+        return
+
+    import torch
+    import torchvision
+
+    print(f"torch {torch.__version__}")
+    print(f"torchvision {torchvision.__version__}")
+    print(f"CUDA available: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"CUDA device: {torch.cuda.get_device_name(0)}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,4 +57,3 @@ def main(argv: list[str] | None = None) -> int:
 
     parser.print_help()
     return 0
-
