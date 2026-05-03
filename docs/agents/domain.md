@@ -18,6 +18,7 @@ When output names a domain concept, use the project's established terms, includi
 - Preview Alignment
 - Raw Stack
 - Aligned Stack
+- Stack Physical Spacing
 - Bad Slice
 - Alignment-Unusable
 - RAFT Padding

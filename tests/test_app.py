@@ -32,6 +32,7 @@ def test_export_preview_stack_action_enables_after_raw_stack_load(tmp_path: Path
     try:
         assert not window.export_button.isEnabled()
 
+        window.xy_pixel_size_value.setValue(25.0)
         window.load_folder(input_folder)
 
         assert window.export_button.isEnabled()
@@ -51,6 +52,7 @@ def test_run_alignment_action_displays_constrained_raft_aligned_stack(tmp_path: 
     try:
         assert not window.run_button.isEnabled()
 
+        window.xy_pixel_size_value.setValue(25.0)
         window.load_folder(input_folder)
         window.run_button.click()
 
@@ -72,6 +74,7 @@ def test_export_to_folder_reports_success_after_raw_stack_load(tmp_path: Path) -
 
     window = MainWindow()
     try:
+        window.xy_pixel_size_value.setValue(25.0)
         window.load_folder(input_folder)
 
         window.export_to_folder(output_folder)
@@ -97,6 +100,7 @@ def test_export_to_folder_uses_constrained_raft_aligned_stack_after_alignment(
 
     window = MainWindow()
     try:
+        window.xy_pixel_size_value.setValue(25.0)
         window.load_folder(input_folder)
         window.run_alignment()
 
@@ -120,6 +124,7 @@ def test_open_folder_flow_uses_slice_spacing_controls(tmp_path: Path) -> None:
     try:
         window.spacing_value.setValue(0.5)
         window.spacing_unit.setCurrentText("um")
+        window.xy_pixel_size_value.setValue(25.0)
 
         window.load_folder(input_folder)
 
@@ -127,5 +132,26 @@ def test_open_folder_flow_uses_slice_spacing_controls(tmp_path: Path) -> None:
         assert window.raw_stack.slice_spacing_nm == 500.0
         assert [record.z_nm for record in window.raw_stack.slices] == [0.0, 500.0]
         assert "Slice spacing: 500 nm" in window.left_panel.text()
+    finally:
+        window.close()
+
+
+def test_open_folder_flow_uses_xy_pixel_size_control_and_shows_summary(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.zeros((2, 3), dtype=np.uint16))
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+
+        window.load_folder(input_folder)
+
+        assert window.raw_stack is not None
+        assert window.raw_stack.xy_pixel_size_nm == 25.0
+        assert "XY pixel size: 25 nm" in window.left_panel.text()
     finally:
         window.close()

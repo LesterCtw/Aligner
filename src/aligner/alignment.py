@@ -49,6 +49,7 @@ def run_phase_alignment(stack: RawStack, *, max_pair_distance: int = 3) -> Align
             width=width,
             height=height,
         ),
+        xy_pixel_size_nm=stack.xy_pixel_size_nm,
     )
 
 
@@ -69,6 +70,7 @@ def run_constrained_raft_alignment(
             positions=phase_aligned.positions,
             crop_region=phase_aligned.crop_region,
             alignment_status="constrained_raft",
+            xy_pixel_size_nm=phase_aligned.xy_pixel_size_nm,
             local_alignment=ConstrainedRaftAlignmentMetadata(
                 backend_name="none",
                 device="none",
@@ -88,6 +90,7 @@ def run_constrained_raft_alignment(
         data=phase_aligned.data,
         slices=phase_aligned.slices,
         slice_spacing_nm=phase_aligned.slice_spacing_nm,
+        xy_pixel_size_nm=phase_aligned.xy_pixel_size_nm,
     )
     locally_aligned = np.array(phase_aligned.data, copy=True)
     backend_name = "mocked_flow_provider" if raft_flow_provider is not None else "mock_raft"
@@ -148,6 +151,7 @@ def run_constrained_raft_alignment(
         positions=phase_aligned.positions,
         crop_region=phase_aligned.crop_region,
         alignment_status="constrained_raft",
+        xy_pixel_size_nm=phase_aligned.xy_pixel_size_nm,
         local_alignment=ConstrainedRaftAlignmentMetadata(
             backend_name=backend_name,
             device=device,

@@ -17,6 +17,7 @@ def test_context_defines_v1_domain_terms() -> None:
         "Preview Alignment",
         "Raw Stack",
         "Aligned Stack",
+        "Stack Physical Spacing",
         "Bad Slice",
         "Alignment-Unusable",
         "RAFT Padding",

@@ -10,6 +10,8 @@ from aligner.models import RawStack, SliceRecord
 
 TIFF_EXTENSIONS = {".tif", ".tiff"}
 SUPPORTED_DTYPES = {np.dtype("uint8"), np.dtype("uint16")}
+NM_PER_INCH = 25_400_000.0
+NM_PER_CENTIMETER = 10_000_000.0
 
 
 def natural_sort_key(path: Path | str) -> list[int | str]:
@@ -29,7 +31,12 @@ def discover_tiff_files(folder: Path | str) -> list[Path]:
     return sorted(files, key=natural_sort_key)
 
 
-def load_raw_stack(folder: Path | str, *, slice_spacing_nm: float) -> RawStack:
+def load_raw_stack(
+    folder: Path | str,
+    *,
+    slice_spacing_nm: float,
+    xy_pixel_size_nm: float | None = None,
+) -> RawStack:
     files = discover_tiff_files(folder)
     if not files:
         raise ValueError("No .tif or .tiff files found in the selected folder.")
@@ -78,7 +85,16 @@ def load_raw_stack(folder: Path | str, *, slice_spacing_nm: float) -> RawStack:
             )
         )
 
-    return RawStack(data=np.stack(arrays, axis=0), slices=records, slice_spacing_nm=slice_spacing_nm)
+    resolved_xy_pixel_size_nm = _read_xy_pixel_size_nm(files[0]) or xy_pixel_size_nm
+    if resolved_xy_pixel_size_nm is None or resolved_xy_pixel_size_nm <= 0:
+        raise ValueError("XY pixel size must be greater than zero nm.")
+
+    return RawStack(
+        data=np.stack(arrays, axis=0),
+        slices=records,
+        slice_spacing_nm=slice_spacing_nm,
+        xy_pixel_size_nm=resolved_xy_pixel_size_nm,
+    )
 
 
 def spacing_to_nm(value: float, unit: str) -> float:
@@ -92,3 +108,43 @@ def spacing_to_nm(value: float, unit: str) -> float:
         return float(value) * 1000.0
 
     raise ValueError(f"Unsupported spacing unit: {unit}")
+
+
+def _read_xy_pixel_size_nm(path: Path) -> float | None:
+    with tifffile.TiffFile(path) as tiff:
+        tags = tiff.pages[0].tags
+        x_resolution = tags.get("XResolution")
+        y_resolution = tags.get("YResolution")
+        unit = tags.get("ResolutionUnit")
+
+        if x_resolution is None or y_resolution is None or unit is None:
+            return None
+
+        unit_nm = _resolution_unit_to_nm(unit.value)
+        if unit_nm is None:
+            return None
+
+        x_pixels_per_unit = _resolution_value_to_float(x_resolution.value)
+        y_pixels_per_unit = _resolution_value_to_float(y_resolution.value)
+        if x_pixels_per_unit <= 0 or y_pixels_per_unit <= 0:
+            raise ValueError("TIFF XY pixel size metadata must be greater than zero.")
+        if not np.isclose(x_pixels_per_unit, y_pixels_per_unit):
+            raise ValueError("TIFF XY pixel size metadata must use the same X and Y resolution.")
+
+        return unit_nm / x_pixels_per_unit
+
+
+def _resolution_value_to_float(value: object) -> float:
+    if isinstance(value, tuple):
+        numerator, denominator = value
+        return float(numerator) / float(denominator)
+    return float(value)
+
+
+def _resolution_unit_to_nm(value: object) -> float | None:
+    unit = int(value)
+    if unit == 2:
+        return NM_PER_INCH
+    if unit == 3:
+        return NM_PER_CENTIMETER
+    return None

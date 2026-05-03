@@ -27,6 +27,7 @@ class RawStack:
     data: NDArray[np.integer]
     slices: list[SliceRecord]
     slice_spacing_nm: float
+    xy_pixel_size_nm: float | None = None
 
 
 @dataclass(slots=True)
@@ -70,6 +71,7 @@ class AlignedStack:
     crop_region: AlignedCropRegion
     alignment_status: str = "phase_only"
     local_alignment: ConstrainedRaftAlignmentMetadata | None = None
+    xy_pixel_size_nm: float | None = None
 
 
 @dataclass(slots=True)
@@ -87,6 +89,7 @@ class PairwiseEdge:
 class ProjectConfig:
     input_folder: str | None = None
     slice_spacing_nm: float = 10.0
+    xy_pixel_size_nm: float = 0.0
     alignment_input: str = "bandpass"
     sigma_small: float = 1.0
     sigma_large: float = 50.0

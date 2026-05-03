@@ -79,6 +79,15 @@ def test_phase_alignment_generates_aligned_stack_without_mutating_raw_stack() ->
     np.testing.assert_array_equal(stack.data, original_data)
 
 
+def test_phase_alignment_preserves_xy_pixel_size() -> None:
+    stack = _raw_stack_from_positions([(0, 0), (2, -1), (5, 1)])
+    stack.xy_pixel_size_nm = 25.0
+
+    aligned = run_phase_alignment(stack)
+
+    assert aligned.xy_pixel_size_nm == 25.0
+
+
 def test_constrained_raft_alignment_applies_clipped_local_flow_after_phase_alignment() -> None:
     base = np.arange(25, dtype=np.uint16).reshape(5, 5)
     stack = RawStack(

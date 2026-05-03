@@ -12,13 +12,21 @@ It is not metrology-grade 3D reconstruction. The result is meant for preview, re
 
 Raw Stack is the ordered set of original input TIFF slices loaded from a user-selected folder.
 
-The Raw Stack preserves the original files, natural sort order, original slice index, and user-provided slice spacing. Aligner must not modify these input TIFF files.
+The Raw Stack preserves the original files, natural sort order, original slice index, slice spacing, and XY pixel size. Aligner must not modify these input TIFF files.
 
 ## Aligned Stack
 
 Aligned Stack is the preview stack produced after Aligner applies coarse alignment, constrained local alignment, optional preview-only Bad Slice replacement, and a common crop region.
 
 The Aligned Stack keeps the same slice count, original index mapping, and z-position rhythm as the Raw Stack.
+
+## Stack Physical Spacing
+
+Stack Physical Spacing describes the physical scale used to proportion preview views.
+
+In v1, XY pixel size is stored in nm and slice spacing is stored in nm. XY pixel size may come from TIFF metadata or from the user-provided toolbar value when metadata is missing. Slice spacing remains the Z spacing source.
+
+Stack Physical Spacing supports visual preview proportions. It does not make Aligner output metrology-grade 3D reconstruction.
 
 ## Bad Slice
 

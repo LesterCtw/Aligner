@@ -20,7 +20,7 @@ The target workflow is:
 
 1. Load a folder of `.tif` / `.tiff` slice images.
 2. Natural-sort files into slice order.
-3. Preserve original slice index and user-provided slice spacing.
+3. Preserve original slice index, slice spacing, and XY pixel size.
 4. Build a coarse global XY alignment with phase correlation and graph solving.
 5. Prepare RAFT input with stack-level robust range normalization and grayscale-to-3-channel tensor conversion.
 6. Add constrained RAFT local alignment for preview stabilization.
@@ -55,10 +55,14 @@ Implemented now:
 - Natural file sorting
 - Slice spacing unit conversion to nm
 - Slice spacing input in the PySide6 UI with `nm` and `um` units
+- XY pixel size input in the PySide6 UI in `nm`
 - Validated Raw Stack loading for 8-bit and 16-bit single-channel TIFF files
-- Raw Stack metadata records for filename, original index, z position, size, and dtype
+- Raw Stack loading records XY pixel size from TIFF resolution metadata when available
+- Raw Stack loading uses the toolbar XY pixel size value when TIFF metadata is missing
+- Raw Stack loading fails clearly when XY pixel size is missing or invalid
+- Raw Stack metadata records for filename, original index, z position, size, dtype, and XY pixel size
 - PySide6 Open Folder flow for loading a Raw Stack into the UI
-- Natural file order summary in the UI
+- Natural file order and physical spacing summary in the UI
 - 2D raw slice viewer with slider navigation
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
 - Identity Preview Stack export from the loaded Raw Stack
@@ -92,7 +96,7 @@ Implemented now:
 - Preview Stack export metadata records per-slice output dimensions, Bad Slice status, display source, and replacement source slices
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
-- Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, and UI slice spacing input
+- Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, UI slice spacing input, TIFF XY pixel size metadata, manual XY fallback, and UI XY summary
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 - Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
@@ -127,6 +131,7 @@ Current acceptance status:
 - The v1 constraint strength is fixed to developer-tuned Balanced in the normal UI.
 - Bad Slice replacement is preview-only. It must preserve slice count, original index, and z position, and it must be recorded in metadata.
 - Orthogonal Preview is the v1 3D preview scope. Volume rendering is out of scope for v1.
+- Stack physical spacing is represented by XY pixel size in nm and slice spacing in nm. It supports preview proportions and must not be treated as metrology-grade reconstruction evidence.
 
 See [docs/session-memory.md](docs/session-memory.md) for current discussion state, next open question, and handoff context.
 

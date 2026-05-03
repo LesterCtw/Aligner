@@ -21,10 +21,14 @@ Implemented scaffold:
 - Natural sort
 - Slice spacing unit conversion to nm
 - Slice spacing input in the PySide6 UI with `nm` and `um` units
+- XY pixel size input in the PySide6 UI in `nm`
 - Validated Raw Stack loading for 8-bit and 16-bit single-channel TIFF files
-- Raw Stack metadata records for filename, original index, z position, size, and dtype
+- Raw Stack loading records XY pixel size from TIFF resolution metadata when available
+- Raw Stack loading uses the toolbar XY pixel size value when TIFF metadata is missing
+- Raw Stack loading fails clearly when XY pixel size is missing or invalid
+- Raw Stack metadata records for filename, original index, z position, size, dtype, and XY pixel size
 - PySide6 Open Folder flow for loading a Raw Stack into the UI
-- Natural file order summary in the UI
+- Natural file order and physical spacing summary in the UI
 - 2D raw slice viewer with slider navigation
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
 - Identity Preview Stack TIFF export from the loaded Raw Stack
@@ -36,7 +40,7 @@ Implemented scaffold:
 - Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
 - Phase-only Preview Stack export applies a common Aligned Crop Region to exclude invalid shift borders
 - Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
-- Behavior tests for loading, provenance fields, unsupported input errors, UI slice spacing input, preview generation, identity export, and UI export enablement
+- Behavior tests for loading, provenance fields, unsupported input errors, UI slice spacing input, XY pixel size metadata/fallback, preview generation, identity export, and UI export enablement
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 - RAFT input foundation with stack-level robust normalization, grayscale-to-3-channel conversion, reflect padding, crop-back, and mock smoke metadata
 - Constrained RAFT local alignment MVS using small/mock RAFT flow inputs
@@ -54,7 +58,7 @@ Implemented scaffold:
 
 Last known verification:
 
-- `uv run pytest`: passed, 41 tests
+- `uv run pytest`: passed, 54 tests
 - `uv run ruff check .`: passed
 - `uv run aligner probe`: passed
 
@@ -69,7 +73,7 @@ Primary goals:
 - Load multiple single-slice `.tif` / `.tiff` files from a folder.
 - Preserve original slice order, z-index, and slice depth rhythm.
 - Use natural sort and show sorting preview.
-- Let the user input slice-to-slice spacing, internally stored in nm.
+- Let the user input slice-to-slice spacing and XY pixel size, internally stored in nm.
 - Use phase correlation for coarse global XY alignment.
 - Use graph-based global position solving to avoid cumulative drift.
 - Use RAFT as the v1 local shift alignment method.

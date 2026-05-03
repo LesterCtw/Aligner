@@ -100,6 +100,13 @@ class MainWindow(QMainWindow):
         self.spacing_unit = QComboBox()
         self.spacing_unit.addItems(["nm", "um"])
         toolbar.addWidget(self.spacing_unit)
+        toolbar.addWidget(QLabel("XY pixel size"))
+        self.xy_pixel_size_value = QDoubleSpinBox()
+        self.xy_pixel_size_value.setRange(0.0, 1_000_000.0)
+        self.xy_pixel_size_value.setDecimals(3)
+        self.xy_pixel_size_value.setValue(self.config.xy_pixel_size_nm)
+        self.xy_pixel_size_value.setSuffix(" nm")
+        toolbar.addWidget(self.xy_pixel_size_value)
         self.run_button = QPushButton("Run Alignment")
         self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_alignment)
@@ -160,7 +167,12 @@ class MainWindow(QMainWindow):
                 self.spacing_value.value(),
                 self.spacing_unit.currentText(),
             )
-            self.raw_stack = load_raw_stack(folder, slice_spacing_nm=self.config.slice_spacing_nm)
+            self.config.xy_pixel_size_nm = self.xy_pixel_size_value.value()
+            self.raw_stack = load_raw_stack(
+                folder,
+                slice_spacing_nm=self.config.slice_spacing_nm,
+                xy_pixel_size_nm=self.config.xy_pixel_size_nm,
+            )
         except (OSError, ValueError) as error:
             self.raw_stack = None
             self.aligned_stack = None
@@ -255,7 +267,8 @@ class MainWindow(QMainWindow):
             f"Slices: {len(self.raw_stack.slices)}\n"
             f"Size: {first.width} x {first.height}\n"
             f"Dtype: {first.dtype}\n"
-            f"Slice spacing: {self.raw_stack.slice_spacing_nm:g} nm\n\n"
+            f"Slice spacing: {self.raw_stack.slice_spacing_nm:g} nm\n"
+            f"XY pixel size: {self.raw_stack.xy_pixel_size_nm:g} nm\n\n"
             "Natural file order:\n"
             + "\n".join(preview_names)
         )

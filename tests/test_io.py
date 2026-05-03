@@ -45,7 +45,7 @@ def test_load_raw_stack_reads_grayscale_tiffs_in_natural_order(tmp_path: Path) -
     tifffile.imwrite(tmp_path / "slice_1.tif", np.full((2, 3), 1, dtype=np.uint16))
     (tmp_path / "notes.txt").write_text("ignored")
 
-    stack = load_raw_stack(tmp_path, slice_spacing_nm=25.0)
+    stack = load_raw_stack(tmp_path, slice_spacing_nm=25.0, xy_pixel_size_nm=50.0)
 
     assert stack.data.shape == (3, 2, 3)
     assert stack.data.dtype == np.uint16
@@ -62,7 +62,7 @@ def test_load_raw_stack_reads_uint8_grayscale_tiffs(tmp_path: Path) -> None:
     tifffile.imwrite(tmp_path / "slice_1.tif", np.full((2, 3), 1, dtype=np.uint8))
     tifffile.imwrite(tmp_path / "slice_2.tif", np.full((2, 3), 2, dtype=np.uint8))
 
-    stack = load_raw_stack(tmp_path, slice_spacing_nm=10.0)
+    stack = load_raw_stack(tmp_path, slice_spacing_nm=10.0, xy_pixel_size_nm=50.0)
 
     assert stack.data.dtype == np.uint8
     assert [record.dtype for record in stack.slices] == ["uint8", "uint8"]
@@ -72,7 +72,7 @@ def test_load_raw_stack_records_required_slice_provenance(tmp_path: Path) -> Non
     source = tmp_path / "slice_1.tif"
     tifffile.imwrite(source, np.full((2, 3), 1, dtype=np.uint16))
 
-    stack = load_raw_stack(tmp_path, slice_spacing_nm=12.5)
+    stack = load_raw_stack(tmp_path, slice_spacing_nm=12.5, xy_pixel_size_nm=50.0)
 
     assert stack.slice_spacing_nm == 12.5
     assert len(stack.slices) == 1
@@ -86,6 +86,57 @@ def test_load_raw_stack_records_required_slice_provenance(tmp_path: Path) -> Non
     assert record.dtype == "uint16"
     assert record.quality_label == "raw"
     assert record.display_source == "original"
+
+
+def test_load_raw_stack_records_xy_pixel_size_from_tiff_metadata(tmp_path: Path) -> None:
+    tifffile.imwrite(
+        tmp_path / "slice_1.tif",
+        np.full((2, 3), 1, dtype=np.uint16),
+        resolution=(20_000, 20_000),
+        resolutionunit="CENTIMETER",
+    )
+
+    stack = load_raw_stack(tmp_path, slice_spacing_nm=12.5)
+
+    assert stack.xy_pixel_size_nm == 500.0
+
+
+def test_load_raw_stack_uses_manual_xy_pixel_size_when_tiff_metadata_is_missing(
+    tmp_path: Path,
+) -> None:
+    tifffile.imwrite(tmp_path / "slice_1.tif", np.full((2, 3), 1, dtype=np.uint16))
+
+    stack = load_raw_stack(tmp_path, slice_spacing_nm=12.5, xy_pixel_size_nm=40.0)
+
+    assert stack.xy_pixel_size_nm == 40.0
+
+
+def test_load_raw_stack_rejects_missing_xy_pixel_size(tmp_path: Path) -> None:
+    tifffile.imwrite(tmp_path / "slice_1.tif", np.full((2, 3), 1, dtype=np.uint16))
+
+    with pytest.raises(ValueError, match="XY pixel size"):
+        load_raw_stack(tmp_path, slice_spacing_nm=12.5)
+
+
+def test_load_raw_stack_rejects_invalid_manual_xy_pixel_size(tmp_path: Path) -> None:
+    tifffile.imwrite(tmp_path / "slice_1.tif", np.full((2, 3), 1, dtype=np.uint16))
+
+    with pytest.raises(ValueError, match="XY pixel size"):
+        load_raw_stack(tmp_path, slice_spacing_nm=12.5, xy_pixel_size_nm=0.0)
+
+
+def test_load_raw_stack_rejects_mismatched_tiff_xy_resolution(
+    tmp_path: Path,
+) -> None:
+    tifffile.imwrite(
+        tmp_path / "slice_1.tif",
+        np.full((2, 3), 1, dtype=np.uint16),
+        resolution=(20_000, 10_000),
+        resolutionunit="CENTIMETER",
+    )
+
+    with pytest.raises(ValueError, match="same X and Y"):
+        load_raw_stack(tmp_path, slice_spacing_nm=12.5, xy_pixel_size_nm=40.0)
 
 
 def test_load_raw_stack_rejects_mismatched_slice_sizes(tmp_path: Path) -> None:
