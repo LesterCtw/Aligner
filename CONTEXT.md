@@ -1,0 +1,51 @@
+# Aligner Domain Context
+
+This document defines the shared domain language for Aligner v1. It describes product concepts, not implementation contracts. `README.md` remains the source of truth for current project status.
+
+## Preview Alignment
+
+Preview Alignment is Aligner v1's output goal: a visually stabilized stack that helps users inspect continuity across FIB serial slices.
+
+It is not metrology-grade 3D reconstruction. The result is meant for preview, review, and export provenance, not for dimensional measurement claims.
+
+## Raw Stack
+
+Raw Stack is the ordered set of original input TIFF slices loaded from a user-selected folder.
+
+The Raw Stack preserves the original files, natural sort order, original slice index, and user-provided slice spacing. Aligner must not modify these input TIFF files.
+
+## Aligned Stack
+
+Aligned Stack is the preview stack produced after Aligner applies coarse alignment, constrained local alignment, optional preview-only Bad Slice replacement, and a common crop region.
+
+The Aligned Stack keeps the same slice count, original index mapping, and z-position rhythm as the Raw Stack.
+
+## Bad Slice
+
+Bad Slice is a slice that cannot provide reliable neighboring alignment signal and would break preview continuity if used directly.
+
+In v1, Bad Slice status is derived from alignment signals. Replacement is preview-only and must be recorded in metadata.
+
+## Alignment-Unusable
+
+Alignment-Unusable describes the confirmed state of a suspicious slice after alignment-derived checks show it should not directly drive preview continuity.
+
+This is stronger than one weak confidence value. v1 requires confirmation before preview replacement.
+
+## RAFT Padding
+
+RAFT Padding is the internal padding applied around images so RAFT can run on dimensions compatible with the model.
+
+v1 uses reflect-style padding internally and crops RAFT output back to the original image extent before downstream preview use.
+
+## Aligned Crop Region
+
+Aligned Crop Region is the common valid image area shared by all slices after preview transforms.
+
+Exported aligned TIFFs use this region to avoid empty borders introduced by shifts or warps, and metadata records the crop box.
+
+## Orthogonal Preview
+
+Orthogonal Preview is the v1 3D preview surface made from XY, XZ, and YZ views of the stack.
+
+Before alignment it shows the Raw Stack. After alignment it shows the Aligned Stack in the same preview panel.

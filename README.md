@@ -2,15 +2,25 @@
 
 Aligner is a planned PySide6 desktop tool for FIB serial slice preview alignment.
 
+Aligner v1 produces Preview Alignment output for visual stabilization and review. It is not metrology-grade 3D reconstruction.
+
 The target workflow is:
 
 1. Load a folder of `.tif` / `.tiff` slice images.
 2. Natural-sort files into slice order.
 3. Preserve original slice index and user-provided slice spacing.
 4. Build a coarse global XY alignment with phase correlation and graph solving.
-5. Add constrained RAFT local alignment for preview stabilization.
-6. Detect and replace bad slices internally while keeping the visible slice rhythm continuous.
-7. Export an aligned preview stack and metadata without modifying original input files.
+5. Prepare RAFT input with stack-level robust range normalization and grayscale-to-3-channel tensor conversion.
+6. Add constrained RAFT local alignment for preview stabilization.
+7. Detect and replace bad slices internally while keeping the visible slice rhythm continuous.
+8. Show raw and aligned XY / XZ / YZ Orthogonal Preview views.
+9. Export an aligned preview stack and metadata without modifying original input files.
+
+## Runtime Target
+
+Full v1 acceptance targets Windows 11 + NVIDIA CUDA GPU.
+
+macOS is for development and tiny smoke/mock checks only. A macOS run can verify scaffold behavior and small mocked paths, but it is not the full RAFT acceptance environment.
 
 ## Current Status
 
@@ -40,7 +50,7 @@ Not implemented yet:
 - Bad slice detection and replacement
 - Preview stack export
 - Metadata export
-- 3D preview
+- Orthogonal Preview
 
 ## Locked Product Decisions
 
@@ -49,6 +59,13 @@ Not implemented yet:
 - `phase correlation only` is allowed as a fallback / debug mode.
 - A delivery build without working RAFT is degraded mode and does not satisfy the full v1 acceptance target.
 - RAFT output must be constrained before image warping; unrestricted raw dense flow is out of scope.
+- RAFT input uses stack-level robust range normalization and grayscale-to-3-channel conversion.
+- RAFT input does not use default band-pass, CLAHE, histogram matching, gamma correction, or display contrast preprocessing.
+- RAFT padding is internal and output must be cropped back to the original image extent before downstream preview use.
+- RAFT raw dense flow is compressed to a control grid, clipped, smoothed, and interpolated back before preview warping.
+- The v1 constraint strength is fixed to developer-tuned Balanced in the normal UI.
+- Bad Slice replacement is preview-only. It must preserve slice count, original index, and z position, and it must be recorded in metadata.
+- Orthogonal Preview is the v1 3D preview scope. Volume rendering is out of scope for v1.
 
 See [docs/session-memory.md](docs/session-memory.md) for current discussion state, next open question, and handoff context.
 
