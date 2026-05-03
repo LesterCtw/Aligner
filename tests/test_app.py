@@ -21,6 +21,35 @@ def get_qapp() -> QApplication:
     return app
 
 
+FORBIDDEN_PREVIEW_EXPORT_KEYS = {
+    "threshold",
+    "threshold_value",
+    "applied_threshold",
+    "camera",
+    "camera_state",
+    "mesh",
+    "meshes",
+    "surface",
+    "surfaces",
+    "screenshot",
+    "screenshots",
+    "preview_settings",
+    "preview_ui_settings",
+    "preview_state",
+}
+
+
+def assert_no_preview_state_exported(metadata: object) -> None:
+    if isinstance(metadata, dict):
+        exported_keys = {str(key) for key in metadata}
+        assert exported_keys.isdisjoint(FORBIDDEN_PREVIEW_EXPORT_KEYS)
+        for value in metadata.values():
+            assert_no_preview_state_exported(value)
+    elif isinstance(metadata, list):
+        for item in metadata:
+            assert_no_preview_state_exported(item)
+
+
 def test_export_preview_stack_action_enables_after_raw_stack_load(tmp_path: Path) -> None:
     get_qapp()
     input_folder = tmp_path / "input"
@@ -163,6 +192,40 @@ def test_export_to_folder_reports_success_after_raw_stack_load(tmp_path: Path) -
         window.close()
 
 
+def test_raw_stack_export_ignores_threshold_iso_surface_preview_state(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    tifffile.imwrite(input_folder / "slice_1.tif", np.full((2, 3), 10, dtype=np.uint16))
+    tifffile.imwrite(input_folder / "slice_2.tif", np.full((2, 3), 100, dtype=np.uint16))
+    output_folder = tmp_path / "identity-export"
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+        window.threshold_value.setValue(40)
+        window.apply_threshold_button.click()
+
+        assert window.threshold_iso_surface_preview.current_source_label() == "Raw Stack"
+        assert window.threshold_iso_surface_preview.current_threshold() == 40
+
+        window.export_to_folder(output_folder)
+
+        assert sorted(path.name for path in output_folder.iterdir()) == [
+            "metadata.json",
+            "slice_0000.tif",
+            "slice_0001.tif",
+        ]
+        metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
+        assert metadata["preview_stack"]["alignment_status"] == "identity"
+        assert_no_preview_state_exported(metadata)
+    finally:
+        window.close()
+
+
 def test_export_to_folder_uses_constrained_raft_aligned_stack_after_alignment(
     tmp_path: Path,
 ) -> None:
@@ -185,6 +248,42 @@ def test_export_to_folder_uses_constrained_raft_aligned_stack_after_alignment(
         metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
         assert metadata["preview_stack"]["alignment_status"] == "constrained_raft"
         assert "constrained RAFT Preview Stack" in window.statusBar().currentMessage()
+    finally:
+        window.close()
+
+
+def test_aligned_stack_export_ignores_threshold_iso_surface_preview_state(
+    tmp_path: Path,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    base = np.arange(4 * 5, dtype=np.uint16).reshape(4, 5)
+    tifffile.imwrite(input_folder / "slice_1.tif", base)
+    tifffile.imwrite(input_folder / "slice_2.tif", np.roll(base, shift=(1, 2), axis=(0, 1)))
+    output_folder = tmp_path / "aligned-export"
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+        window.run_alignment()
+        window.threshold_value.setValue(12)
+        window.apply_threshold_button.click()
+
+        assert window.threshold_iso_surface_preview.current_source_label() == "Aligned Stack"
+        assert window.threshold_iso_surface_preview.current_threshold() == 12
+
+        window.export_to_folder(output_folder)
+
+        assert sorted(path.name for path in output_folder.iterdir()) == [
+            "metadata.json",
+            "slice_0000.tif",
+            "slice_0001.tif",
+        ]
+        metadata = json.loads((output_folder / "metadata.json").read_text(encoding="utf-8"))
+        assert metadata["preview_stack"]["alignment_status"] == "constrained_raft"
+        assert_no_preview_state_exported(metadata)
     finally:
         window.close()
 

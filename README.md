@@ -119,6 +119,8 @@ Implemented now:
 - Behavior tests for Raw and Aligned Stack 3D preview source labeling,
   Run Alignment preview refresh, and active-stack threshold rebuild behavior
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
+- Behavior tests verifying Threshold Iso-surface Preview state does not affect
+  Raw or Aligned Stack Preview Stack export files or metadata
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
 - Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
 - Behavior tests for constrained flow clipping, constrained flow shape, local preview warp integration, UI Run Alignment, and constrained RAFT export metadata
