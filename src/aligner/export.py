@@ -122,6 +122,11 @@ def export_preview_stack(stack: RawStack | AlignedStack, output_folder: Path | s
         for slice_metadata, (x, y) in zip(metadata["slices"], stack.positions, strict=True):
             slice_metadata["coarse_x"] = x
             slice_metadata["coarse_y"] = y
+        for slice_metadata, record in zip(metadata["slices"], stack.slices, strict=True):
+            slice_metadata["bad_slice_status"] = record.quality_label
+            slice_metadata["display_source"] = record.display_source
+            if record.interpolated_from is not None:
+                slice_metadata["replacement_source_slices"] = list(record.interpolated_from)
 
     (output_path / "metadata.json").write_text(
         json.dumps(metadata, indent=2) + "\n",

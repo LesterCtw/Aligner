@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 from numpy.typing import NDArray
 from scipy.ndimage import map_coordinates
@@ -11,6 +13,7 @@ from aligner.models import (
     PairwiseEdge,
     RaftConstraintParameters,
     RawStack,
+    SliceRecord,
 )
 from aligner.raft import (
     BALANCED_RAFT_CONSTRAINTS,
@@ -20,6 +23,10 @@ from aligner.raft import (
 )
 
 
+PHASE_SUSPICIOUS_RESPONSE_THRESHOLD = 0.02
+RAFT_UNUSABLE_RAW_DISPLACEMENT_MULTIPLIER = 2.0
+
+
 def run_phase_alignment(stack: RawStack, *, max_pair_distance: int = 3) -> AlignedStack:
     edges = create_phase_correlation_edges(stack, max_pair_distance=max_pair_distance)
     positions = solve_global_positions(edges, slice_count=stack.data.shape[0])
@@ -27,7 +34,7 @@ def run_phase_alignment(stack: RawStack, *, max_pair_distance: int = 3) -> Align
     height, width = stack.data.shape[1:]
     return AlignedStack(
         data=data,
-        slices=list(stack.slices),
+        slices=_mark_phase_suspicious_slices(stack.slices, edges),
         slice_spacing_nm=stack.slice_spacing_nm,
         edges=edges,
         positions=positions,
@@ -83,6 +90,7 @@ def run_constrained_raft_alignment(
     constrained_max = 0.0
     control_grid_shape = (0, 0)
     flow_count = 0
+    raft_pair_raw_max: dict[tuple[int, int], float] = {}
 
     for index in range(1, len(phase_aligned.slices)):
         flow_result = provider(local_stack, index - 1, index)
@@ -95,6 +103,9 @@ def run_constrained_raft_alignment(
             raw_flow = flow_result
 
         constrained_flow = constrain_raft_flow(raw_flow, constraints=constraints)
+        raft_pair_raw_max[(index - 1, index)] = (
+            constrained_flow.metadata.raw_max_displacement_px
+        )
         locally_aligned[index] = _warp_image_with_flow(
             phase_aligned.data[index],
             constrained_flow.flow,
@@ -107,9 +118,19 @@ def run_constrained_raft_alignment(
         control_grid_shape = constrained_flow.metadata.control_grid_shape
         flow_count += 1
 
+    locally_aligned, slices = _replace_confirmed_bad_slices(
+        locally_aligned,
+        phase_aligned.data,
+        phase_aligned.slices,
+        raft_pair_raw_max,
+        raw_displacement_threshold=(
+            constraints.max_displacement_px * RAFT_UNUSABLE_RAW_DISPLACEMENT_MULTIPLIER
+        ),
+    )
+
     return AlignedStack(
         data=locally_aligned,
-        slices=phase_aligned.slices,
+        slices=slices,
         slice_spacing_nm=phase_aligned.slice_spacing_nm,
         edges=phase_aligned.edges,
         positions=phase_aligned.positions,
@@ -207,6 +228,73 @@ def _apply_integer_alignment(
             axis=(0, 1),
         )
     return aligned
+
+
+def _mark_phase_suspicious_slices(
+    slices: list[SliceRecord],
+    edges: list[PairwiseEdge],
+) -> list[SliceRecord]:
+    output = [replace(record) for record in slices]
+    adjacent_responses = {
+        (edge.i, edge.j): edge.response
+        for edge in edges
+        if edge.j == edge.i + 1
+    }
+
+    for index in range(1, len(output) - 1):
+        left_response = adjacent_responses.get((index - 1, index))
+        right_response = adjacent_responses.get((index, index + 1))
+        if (
+            left_response is not None
+            and right_response is not None
+            and left_response < PHASE_SUSPICIOUS_RESPONSE_THRESHOLD
+            and right_response < PHASE_SUSPICIOUS_RESPONSE_THRESHOLD
+        ):
+            output[index].quality_label = "suspicious"
+
+    return output
+
+
+def _replace_confirmed_bad_slices(
+    data: NDArray[np.integer],
+    replacement_source_data: NDArray[np.integer],
+    slices: list[SliceRecord],
+    raft_pair_raw_max: dict[tuple[int, int], float],
+    *,
+    raw_displacement_threshold: float,
+) -> tuple[NDArray[np.integer], list[SliceRecord]]:
+    output_data = np.array(data, copy=True)
+    output_slices = [replace(record) for record in slices]
+
+    for index in range(1, len(output_slices) - 1):
+        if output_slices[index].quality_label != "suspicious":
+            continue
+
+        left_raw_max = raft_pair_raw_max.get((index - 1, index), 0.0)
+        right_raw_max = raft_pair_raw_max.get((index, index + 1), 0.0)
+        if (
+            left_raw_max <= raw_displacement_threshold
+            or right_raw_max <= raw_displacement_threshold
+        ):
+            continue
+
+        left_index = index - 1
+        right_index = index + 1
+        output_data[left_index] = replacement_source_data[left_index]
+        output_data[right_index] = replacement_source_data[right_index]
+        interpolated = (
+            replacement_source_data[left_index].astype(np.float32)
+            + replacement_source_data[right_index].astype(np.float32)
+        ) / 2.0
+        output_data[index] = np.rint(interpolated).astype(output_data.dtype)
+        output_slices[index].quality_label = "alignment_unusable"
+        output_slices[index].display_source = "interpolated"
+        output_slices[index].interpolated_from = (
+            output_slices[left_index].index,
+            output_slices[right_index].index,
+        )
+
+    return output_data, output_slices
 
 
 def _compute_common_valid_crop_region(

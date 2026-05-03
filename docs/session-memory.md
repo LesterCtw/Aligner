@@ -43,11 +43,18 @@ Implemented scaffold:
 - Balanced constrained flow parameters fixed at max displacement 4 px, 64 px control grid spacing, smoothing sigma 1 grid cell, and working scale 1.0
 - Run Alignment now executes phase correlation followed by constrained RAFT local alignment and displays the constrained RAFT Aligned Stack in the Orthogonal Preview panel
 - Constrained RAFT export metadata records backend, degraded mode, working scale, Balanced constraints, control grid shape, and raw/constrained displacement maxima
+- Internal Bad Slice detection and preview-only replacement MVS
+- Phase graph confidence can mark suspicious slices without replacement
+- RAFT/control-grid sanity is required before a suspicious slice becomes Alignment-Unusable
+- Confirmed Bad Slices are replaced only in the preview stack by interpolation from surrounding good slices
+- Bad Slice replacement preserves slice count, original index, z position, and original input files
+- Bad Slice export metadata records status, display source, and replacement source slices
 - Behavior tests for constrained flow clipping, constrained flow shape, local preview warp integration, UI Run Alignment, and constrained RAFT export metadata
+- Behavior tests for two-stage Bad Slice confirmation, no replacement from phase signal alone, preview-only provenance, preserved slice rhythm, and export metadata
 
 Last known verification:
 
-- `uv run pytest`: passed, 36 tests
+- `uv run pytest`: passed, 39 tests
 - `uv run ruff check .`: passed
 - `uv run aligner probe`: passed
 
