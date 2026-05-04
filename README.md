@@ -14,7 +14,7 @@ Windows packaging and runtime window icons must use:
 assets/icons/aligner_icon.ico
 ```
 
-The icon follows the shared Project icon style used by Aligner, Denoiser, and Measurer: dark rounded-square background, blue product initial, and the product name below it.
+The icon follows the shared Project icon style used by Aligner, Denoiser, and Measurer: dark rounded-square background, blue product initial, and no bottom wordmark.
 
 The target workflow is:
 
