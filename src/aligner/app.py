@@ -215,10 +215,16 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Alignment failed: no Raw Stack loaded")
             return
 
-        self.aligned_stack = run_constrained_raft_alignment(
-            self.raw_stack,
-            max_pair_distance=self.config.max_pair_distance,
-        )
+        try:
+            self.aligned_stack = run_constrained_raft_alignment(
+                self.raw_stack,
+                max_pair_distance=self.config.max_pair_distance,
+            )
+        except (RuntimeError, ValueError) as error:
+            self.aligned_stack = None
+            self.statusBar().showMessage(f"Alignment failed: {error}")
+            return
+
         self._prepare_active_stack_iso_surface_preview()
         self.show_slice(self.timeline.value())
         self.statusBar().showMessage(alignment_success_message())

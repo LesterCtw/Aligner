@@ -1,54 +1,35 @@
-# ADR 0001: Use VTK + Qt For Threshold Iso-surface Preview
+# ADR 0001: 使用 VTK + Qt 建立 Threshold Iso-surface Preview
 
 Status: Accepted
 
 ## Context
 
-Aligner v1 needs a main Threshold Iso-surface Preview for Raw Stack and
-Aligned Stack inspection. The preview should let users rotate, zoom, and pan a
-solid-looking threshold surface while keeping Orthogonal Preview as the
-supporting XY / XZ / YZ slice inspection surface.
+Aligner v1 需要一個主要的 Threshold Iso-surface Preview，用於 Raw Stack 和 Aligned Stack inspection。這個 preview 應讓使用者可以旋轉、縮放和平移一個看起來像實體的 threshold surface，同時保留 Orthogonal Preview 作為輔助的 XY / XZ / YZ slice inspection surface。
 
-The preview remains a visual inspection aid. It must not change Preview Stack
-export, modify original TIFF files, or claim metrology-grade 3D reconstruction.
+這個 preview 仍然只是視覺檢查輔助。它不得改變 Preview Stack export、修改原始 TIFF 檔案，或宣稱 metrology-grade 3D reconstruction。
 
 ## Decision
 
-Use VTK + Qt for the interactive Threshold Iso-surface Preview inside the
-PySide6 desktop UI.
+在 PySide6 desktop UI 內，使用 VTK + Qt 建立互動式 Threshold Iso-surface Preview。
 
-The current implementation adds the rendering shell and widget boundary first.
-Full threshold iso-surface extraction, preview-volume downsampling, and rebuild
-behavior are separate follow-up work.
+目前實作先加入 rendering shell 和 widget boundary。完整 threshold iso-surface extraction、preview-volume downsampling 和 rebuild behavior 是分開的後續工作。
 
 ## Why
 
-VTK provides established scientific visualization primitives for iso-surface
-rendering and a normal 3D camera interaction model. Qt integration lets the
-preview live inside the existing PySide6 app instead of introducing a separate
-viewer process or a custom rendering stack.
+VTK 提供成熟的 scientific visualization primitives，可用於 iso-surface rendering，也提供一般 3D camera interaction model。Qt integration 讓 preview 可以留在既有 PySide6 app 中，不需要引入獨立 viewer process 或自訂 rendering stack。
 
-This keeps the normal UI focused on threshold iso-surface preview. It also
-supports the product decision to keep opacity-based volume rendering, transfer
-functions, material presets, and general rendering controls out of scope for
-v1.
+這讓正常 UI 聚焦在 threshold iso-surface preview。同時也支援產品決策：v1 不包含 opacity-based volume rendering、transfer functions、material presets 和一般 rendering controls。
 
 ## Trade-offs
 
-VTK is a heavier dependency than the existing 2D preview path. It increases
-install size, can have stricter GUI runtime requirements, and may need special
-handling in headless/offscreen tests.
+VTK 比既有 2D preview path 是更重的 dependency，是 heavier dependency。它會增加 install size，可能有更嚴格的 GUI runtime requirements，也可能需要在 headless/offscreen tests 中做特殊處理。
 
-The benefit is that Aligner gets a purpose-built 3D rendering path for
-threshold iso-surface preview without hand-rolling camera interaction,
-iso-surface rendering, or low-level OpenGL behavior.
+好處是 Aligner 取得了專為 threshold iso-surface preview 設計的 3D rendering path，不需要自行實作 camera interaction、iso-surface rendering 或 low-level OpenGL behavior。
 
 ## Consequences
 
-- The app dependency metadata must include VTK.
-- VTK integration should stay behind a small Qt widget boundary.
-- Automated tests should cover import and UI wiring where practical.
-- Manual GUI smoke testing remains necessary for true camera interaction on a
-  real desktop display.
-- Preview settings, mesh export, screenshots, opacity-based volume rendering,
-  and transfer-function controls remain out of scope.
+- App dependency metadata 必須包含 VTK。
+- VTK integration 應保持在小型 Qt widget boundary 後面。
+- Automated tests 在可行時應涵蓋 import 和 UI wiring。
+- 真正的 camera interaction 仍需要在 real desktop display 上做 manual GUI smoke testing。
+- Preview settings、mesh export、screenshots、opacity-based volume rendering 和 transfer-function controls 都維持在 scope 外。

@@ -1,19 +1,19 @@
 # Domain Docs
 
-This repo uses a single-context domain documentation layout.
+這個 repo 使用 single-context domain documentation layout。
 
-## Before exploring, read these
+## 開始探索前，先閱讀這些文件
 
-- `CONTEXT.md` at the repo root, if it exists.
-- `docs/adr/`, if it exists, for architectural decisions relevant to the area being changed.
-- `docs/session-memory.md` for current discussion state and handoff context.
-- `README.md` as the source of truth for current project status.
+- repo root 的 `CONTEXT.md`，如果存在。
+- `docs/adr/`，如果存在，用來了解和變更區域相關的 architecture decisions。
+- `docs/session-memory.md`，用來了解目前 discussion state 和 handoff context。
+- `README.md`，它是目前專案狀態的唯一事實來源。
 
-If any of these files do not exist, proceed silently.
+如果其中任何檔案不存在，直接繼續，不需要特別說明。
 
 ## Vocabulary
 
-When output names a domain concept, use the project's established terms, including:
+當輸出提到 domain concept 時，使用專案既有用詞，包含：
 
 - Preview Alignment
 - Raw Stack
@@ -25,4 +25,4 @@ When output names a domain concept, use the project's established terms, includi
 - Aligned Crop Region
 - Orthogonal Preview
 
-If a needed concept is missing from the glossary, note it as a documentation gap instead of inventing a synonym.
+如果需要的概念不在 glossary 中，把它記為 documentation gap，不要自行發明同義詞。

@@ -1,43 +1,39 @@
 # Windows 11 Python 3.12.8 Pip Setup And Test Workflow
 
-This document describes the supported Windows target setup when `uv` is not
-available and dependencies must be installed with `pip`.
+這份文件描述在無法使用 `uv`、必須用 `pip` 安裝 dependencies 時，支援的 Windows target setup。
 
-Use this for Windows 11 acceptance setup before running
-[Windows CUDA v1 Acceptance Workflow](windows-cuda-acceptance.md).
+在執行 [Windows CUDA v1 Acceptance Workflow](windows-cuda-acceptance.md) 前，請用這份文件完成 Windows 11 acceptance setup。
 
 ## Target
 
-- Windows 11.
-- Python 3.12.8.
-- PowerShell.
-- `pip install` only for Python package installation.
-- NVIDIA CUDA GPU only when running full RAFT acceptance.
+- Windows 11。
+- Python 3.12.8。
+- PowerShell。
+- Python package installation 只使用 `pip install`。
+- 只有在執行完整 RAFT acceptance 時才需要 NVIDIA CUDA GPU。
 
-This workflow uses a local virtual environment in `.venv`. It does not require
-`uv`.
+這個 workflow 使用 `.venv` 中的 local virtual environment，不需要 `uv`。
 
 ## Prerequisites
 
-Install these first:
+請先安裝：
 
-- Git for Windows.
-- Python 3.12.8 from python.org.
-- NVIDIA GPU driver if full CUDA acceptance will be run.
+- Git for Windows。
+- 來自 python.org 的 Python 3.12.8。
+- 如果要執行完整 CUDA acceptance，請安裝 NVIDIA GPU driver。
 
-During Python installation, enable `Add python.exe to PATH` if the installer
-offers it.
+安裝 Python 時，如果 installer 提供 `Add python.exe to PATH`，請啟用。
 
 ## Clone
 
-Open PowerShell:
+開啟 PowerShell：
 
 ```powershell
 git clone https://github.com/LesterCtw/Aligner.git
 cd Aligner
 ```
 
-If the repository already exists, update it:
+如果 repository 已經存在，請更新：
 
 ```powershell
 git pull
@@ -45,19 +41,19 @@ git pull
 
 ## Create Environment
 
-Check Python:
+檢查 Python：
 
 ```powershell
 py -3.12 --version
 ```
 
-Expected:
+預期：
 
 ```text
 Python 3.12.8
 ```
 
-Create and activate the virtual environment:
+建立並啟用 virtual environment：
 
 ```powershell
 py -3.12 -m venv .venv
@@ -65,13 +61,13 @@ py -3.12 -m venv .venv
 python --version
 ```
 
-Expected:
+預期：
 
 ```text
 Python 3.12.8
 ```
 
-If PowerShell blocks activation, run this for the current PowerShell process:
+如果 PowerShell 阻擋 activation，請對目前 PowerShell process 執行：
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
@@ -80,120 +76,110 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ## Install Aligner
 
-Upgrade packaging tools:
+升級 packaging tools：
 
 ```powershell
 python -m pip install --upgrade pip setuptools wheel
 ```
 
-Install Aligner with development test tools:
+安裝 Aligner 與 development test tools：
 
 ```powershell
 python -m pip install -e ".[dev]"
 ```
 
-Why editable install is used:
+為什麼使用 editable install：
 
-- It installs the `aligner` command into the virtual environment.
-- Local source edits are picked up without reinstalling.
-- Tests import the same package entry points a user runs.
+- 它會把 `aligner` command 安裝到 virtual environment。
+- Local source edits 不需要重新安裝就會生效。
+- Tests 會 import 使用者實際執行的同一組 package entry points。
 
-Trade-off:
+Trade-off：
 
-- This is a development/acceptance setup, not a frozen release installer.
+- 這是 development/acceptance setup，不是 frozen release installer。
 
 ## Optional CUDA RAFT Install
 
-For full v1 acceptance, install CUDA-capable `torch` and `torchvision` wheels
-inside the active `.venv`.
+完整 v1 acceptance 需要在 active `.venv` 中安裝支援 CUDA 的 `torch` 和 `torchvision` wheels。
 
-Use the official PyTorch selector to choose the command for the target machine,
-then run the resulting `pip install ...` command in this PowerShell session.
+請使用官方 PyTorch selector，為目標 machine 選擇指令，然後在這個 PowerShell session 執行產生的 `pip install ...` command。
 
-The command shape is:
+Command 形狀如下：
 
 ```powershell
 python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cuXXX
 ```
 
-Replace `cuXXX` with the CUDA wheel index selected for the Windows machine.
+把 `cuXXX` 換成為 Windows machine 選定的 CUDA wheel index。
 
-Do not use CPU-only PyTorch for full v1 acceptance. CPU-only RAFT is degraded
-mode and does not satisfy the Windows CUDA acceptance target.
+完整 v1 acceptance 不要使用 CPU-only PyTorch。CPU-only RAFT 是 degraded mode，不符合 Windows CUDA acceptance target。
 
 ## Environment Probe
 
-Verify core runtime dependencies:
+驗證 core runtime dependencies：
 
 ```powershell
 aligner probe
 ```
 
-Expected core result:
+預期 core result：
 
 ```text
 Core dependencies available.
 ```
 
-If CUDA RAFT was installed, verify PyTorch, torchvision, and CUDA:
+如果已安裝 CUDA RAFT，請驗證 PyTorch、torchvision 和 CUDA：
 
 ```powershell
 python -c "import torch, torchvision; print('torch', torch.__version__); print('torchvision', torchvision.__version__); print('cuda', torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
 ```
 
-Expected for full CUDA acceptance:
+完整 CUDA acceptance 的預期結果：
 
 - `cuda True`
-- A real NVIDIA GPU name, not `no cuda`
+- 真實 NVIDIA GPU 名稱，不是 `no cuda`
 
 ## Automated Tests
 
-Run the test suite:
+執行 test suite：
 
 ```powershell
 pytest
 ruff check .
 ```
 
-Expected:
+預期：
 
-- All tests pass.
-- Ruff reports no lint errors.
+- 所有 tests pass。
+- Ruff 沒有 lint errors。
 
-These tests verify code health. They do not replace manual GUI acceptance for
-3D camera interaction or full Windows CUDA RAFT behavior.
+這些 tests 驗證 code health。它們不能取代 3D camera interaction 或完整 Windows CUDA RAFT behavior 的 manual GUI acceptance。
 
 ## Launch GUI
 
-For lightweight GUI smoke testing with the default mock backend:
+使用預設 mock backend 做輕量 GUI smoke testing：
 
 ```powershell
 aligner gui
 ```
 
-For full Windows CUDA acceptance:
+執行完整 Windows CUDA acceptance：
 
 ```powershell
 $env:ALIGNER_RAFT_BACKEND = "torchvision"
 aligner gui
 ```
 
-Expected:
+預期：
 
-- The PySide6 Aligner window opens.
-- `Open Folder`, threshold controls, 3D preview, Run Alignment, and Export
-  Preview Stack are available.
-- With `ALIGNER_RAFT_BACKEND=torchvision`, Run Alignment must use the real
-  torchvision RAFT backend on CUDA for full acceptance.
+- PySide6 Aligner window 會開啟。
+- `Open Folder`、threshold controls、3D preview、Run Alignment 和 Export Preview Stack 都可使用。
+- 使用 `ALIGNER_RAFT_BACKEND=torchvision` 時，Run Alignment 必須在 CUDA 上使用真實 torchvision RAFT backend，才符合完整 acceptance。
 
 ## Common Failure Points
 
-- `py -3.12 --version` does not show `Python 3.12.8`: install Python 3.12.8 or
-  fix the Python launcher registration.
-- `.\.venv\Scripts\Activate.ps1` is blocked: use the process-scoped execution
-  policy command above.
-- `aligner` command is missing: ensure `.venv` is activated, then rerun
-  `python -m pip install -e ".[dev]"`.
-- `vtk` or `PySide6` install fails: confirm 64-bit Python 3.12.8 is being used.
-- `cuda False`: update the NVIDIA driver and reinstall CUDA-capable PyTorch
-  wheels selected for the machine.
+- `py -3.12 --version` 沒有顯示 `Python 3.12.8`：安裝 Python 3.12.8，或修正 Python launcher registration。
+- `.\.venv\Scripts\Activate.ps1` 被阻擋：使用上方 process-scoped execution policy command。
+- 找不到 `aligner` command：確認 `.venv` 已啟用，然後重新執行 `python -m pip install -e ".[dev]"`。
+- `vtk` 或 `PySide6` 安裝失敗：確認使用的是 64-bit Python 3.12.8。
+- `cuda False`：更新 NVIDIA driver，並重新安裝為該 machine 選定的 CUDA-capable PyTorch wheels。

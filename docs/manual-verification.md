@@ -1,72 +1,63 @@
 # Manual Verification Tracker
 
-This document collects the current human verification work. `README.md`
-remains the source of truth for project status after each verification run.
+這份文件彙整目前需要人工驗證的工作。每次 verification run 之後，`README.md` 仍然是專案狀態的唯一事實來源。
 
 Last checked against GitHub issues: 2026-05-04.
 
 ## Goal
 
-Keep the remaining manual checks visible in one place:
+把剩餘的 manual checks 集中放在同一個地方：
 
-- which GitHub issue owns the check
-- what environment is required
-- what result must be recorded back into `README.md`
+- 哪個 GitHub issue 負責該 check
+- 需要什麼 environment
+- 必須把什麼結果記回 `README.md`
 
 ## Known Constraints
 
-- Full v1 acceptance requires Windows 11 with an NVIDIA CUDA GPU.
-- macOS can verify development smoke paths only. It cannot verify CUDA
-  execution or full v1 acceptance.
-- Manual verification needs a representative TIFF Raw Stack. The 600-slice
-  preview check needs a practical stack with at least 600 slices.
-- Automated tests do not replace the manual camera, display, CUDA, and export
-  inspection checks.
+- 完整 v1 acceptance 需要 Windows 11 搭配 NVIDIA CUDA GPU。
+- macOS 只能驗證 development smoke paths，無法驗證 CUDA execution 或完整 v1 acceptance。
+- Manual verification 需要具代表性的 TIFF Raw Stack。600-slice preview check 需要至少 600 slices 的實用 stack。
+- Automated tests 不能取代 manual camera、display、CUDA 和 export inspection checks。
 
 ## Current Assumptions
 
-- The user or maintainer can provide the target Windows CUDA machine.
-- The user or maintainer can provide representative Raw Stack data.
-- Acceptance results should be recorded factually, including failed or degraded
-  runs.
+- 使用者或 maintainer 可以提供目標 Windows CUDA machine。
+- 使用者或 maintainer 可以提供具代表性的 Raw Stack data。
+- Acceptance results 應如實記錄，包含 failed 或 degraded runs。
 
 ## Unverified Or Unclear
 
-- Exact Windows machine, GPU model, and CUDA wheel versions are not recorded
-  yet.
-- Exact representative Raw Stack path and summary are not recorded yet.
-- 600-slice interactive camera performance has not been verified on a real
-  desktop display.
+- 尚未記錄精確的 Windows machine、GPU model 和 CUDA wheel versions。
+- 尚未記錄精確的 representative Raw Stack path 和 summary。
+- 尚未在 real desktop display 上驗證 600-slice interactive camera performance。
 
 ## Ready For Human Issues
 
 | Issue | Scope | Required environment | What to record |
 | --- | --- | --- | --- |
-| [#1 PRD: Aligner v1 Preview Alignment MVS](https://github.com/LesterCtw/Aligner/issues/1) | Overall v1 Preview Alignment acceptance umbrella. Confirms the product goal is satisfied end to end, not only through automated tests. | Windows 11 + NVIDIA CUDA GPU for full acceptance. | Final v1 acceptance status, remaining caveats, and any degraded-mode notes in `README.md`. |
-| [#12 Windows CUDA v1 acceptance workflow](https://github.com/LesterCtw/Aligner/issues/12) | Run the complete Windows CUDA workflow: install, launch, load Raw Stack, inspect raw preview, run real RAFT, inspect aligned preview, export TIFFs and metadata. | Windows 11 + NVIDIA CUDA GPU with real `torchvision.models.optical_flow` RAFT selected. | Windows version, GPU, Python, `torch`, `torchvision`, CUDA availability, Raw Stack summary, pass/fail result, export inspection notes. |
-| [#22 End-to-end 600-slice preview acceptance smoke path](https://github.com/LesterCtw/Aligner/issues/22) | Verify the Threshold Iso-surface Preview with at least 600 slices, including threshold controls and 3D camera interaction. | Real desktop display with a practical 600-slice Raw Stack. CUDA is needed if this also includes Run Alignment with real RAFT. | Stack summary, threshold behavior, camera rotate/zoom/pan usability, Raw/Aligned preview refresh result, performance caveats. |
+| [#1 PRD: Aligner v1 Preview Alignment MVS](https://github.com/LesterCtw/Aligner/issues/1) | 整體 v1 Preview Alignment acceptance umbrella。確認產品目標是 end to end 被滿足，不只是通過 automated tests。 | Windows 11 + NVIDIA CUDA GPU，用於完整 acceptance。 | Final v1 acceptance status、remaining caveats，以及任何 degraded-mode notes，記錄在 `README.md`。 |
+| [#12 Windows CUDA v1 acceptance workflow](https://github.com/LesterCtw/Aligner/issues/12) | 執行完整 Windows CUDA workflow：install、launch、load Raw Stack、inspect raw preview、run real RAFT、inspect aligned preview、export TIFFs 和 metadata。 | Windows 11 + NVIDIA CUDA GPU，且選用真實 `torchvision.models.optical_flow` RAFT。 | Windows version、GPU、Python、`torch`、`torchvision`、CUDA availability、Raw Stack summary、pass/fail result、export inspection notes。 |
+| [#22 End-to-end 600-slice preview acceptance smoke path](https://github.com/LesterCtw/Aligner/issues/22) | 使用至少 600 slices 驗證 Threshold Iso-surface Preview，包含 threshold controls 和 3D camera interaction。 | Real desktop display，搭配實用的 600-slice Raw Stack。如果同時包含 real RAFT 的 Run Alignment，則需要 CUDA。 | Stack summary、threshold behavior、camera rotate/zoom/pan usability、Raw/Aligned preview refresh result、performance caveats。 |
 
 ## Related Umbrella Issue
 
 | Issue | Relationship |
 | --- | --- |
-| [#14 PRD: 3D Threshold Iso-surface Preview](https://github.com/LesterCtw/Aligner/issues/14) | Umbrella PRD for the 3D Threshold Iso-surface Preview. Issue #22 is the human acceptance smoke path for this feature. |
+| [#14 PRD: 3D Threshold Iso-surface Preview](https://github.com/LesterCtw/Aligner/issues/14) | 3D Threshold Iso-surface Preview 的 umbrella PRD。Issue #22 是此功能的 human acceptance smoke path。 |
 
 ## Existing Workflow Docs
 
-- Full Windows CUDA acceptance steps:
+- 完整 Windows CUDA acceptance steps：
   [windows-cuda-acceptance.md](windows-cuda-acceptance.md)
-- Windows pip-only setup steps:
+- Windows pip-only setup steps：
   [windows-pip-setup.md](windows-pip-setup.md)
 
 ## Minimum Verification Order
 
-1. Run the setup and pre-checks from
-   [windows-cuda-acceptance.md](windows-cuda-acceptance.md).
-2. Complete #12 on the Windows CUDA target.
-3. Complete #22 with a practical 600-slice stack.
-4. Update `README.md` with factual pass/fail results and environment notes.
-5. Close or comment on the relevant GitHub issues with the same evidence.
+1. 依照 [windows-cuda-acceptance.md](windows-cuda-acceptance.md) 執行 setup 和 pre-checks。
+2. 在 Windows CUDA target 上完成 #12。
+3. 使用實用的 600-slice stack 完成 #22。
+4. 用實際 pass/fail results 和 environment notes 更新 `README.md`。
+5. 用同一份 evidence 在相關 GitHub issues close 或 comment。
 
-This order is the simplest path because #12 confirms the full RAFT acceptance
-environment first, then #22 focuses on interactive 3D preview usability.
+這個順序是最簡單的路徑，因為 #12 會先確認完整 RAFT acceptance environment，接著 #22 專注於互動式 3D preview usability。

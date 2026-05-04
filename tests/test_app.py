@@ -87,7 +87,15 @@ def test_run_alignment_action_displays_constrained_raft_aligned_stack(tmp_path: 
 
         assert window.aligned_stack is not None
         assert window.aligned_stack.alignment_status == "constrained_raft"
-        np.testing.assert_array_equal(window.aligned_stack.data[1], base)
+        crop = window.aligned_stack.crop_region
+        np.testing.assert_array_equal(
+            window.aligned_stack.data[
+                1,
+                crop.y : crop.y + crop.height,
+                crop.x : crop.x + crop.width,
+            ],
+            base[crop.y : crop.y + crop.height, crop.x : crop.x + crop.width],
+        )
         assert "constrained RAFT Aligned Stack" in window.statusBar().currentMessage()
     finally:
         window.close()
@@ -114,6 +122,35 @@ def test_run_alignment_refreshes_3d_preview_from_aligned_stack(tmp_path: Path) -
         assert window.threshold_iso_surface_preview.current_source_label() == "Aligned Stack"
         assert window.threshold_iso_surface_preview.current_data_shape() == window.aligned_stack.data.shape
         assert "3D preview: Aligned Stack" in window.statusBar().currentMessage()
+    finally:
+        window.close()
+
+
+def test_run_alignment_reports_backend_failure_without_crashing(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    get_qapp()
+    input_folder = tmp_path / "input"
+    input_folder.mkdir()
+    base = np.arange(4 * 5, dtype=np.uint16).reshape(4, 5)
+    tifffile.imwrite(input_folder / "slice_1.tif", base)
+    tifffile.imwrite(input_folder / "slice_2.tif", base)
+
+    def fail_alignment(*_args, **_kwargs):
+        raise RuntimeError("CUDA is required for the full v1 torchvision RAFT backend.")
+
+    monkeypatch.setattr("aligner.app.run_constrained_raft_alignment", fail_alignment)
+
+    window = MainWindow()
+    try:
+        window.xy_pixel_size_value.setValue(25.0)
+        window.load_folder(input_folder)
+
+        window.run_alignment()
+
+        assert window.aligned_stack is None
+        assert "Alignment failed: CUDA is required" in window.statusBar().currentMessage()
     finally:
         window.close()
 

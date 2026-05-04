@@ -72,11 +72,24 @@ def test_phase_alignment_generates_aligned_stack_without_mutating_raw_stack() ->
     original_data = stack.data.copy()
 
     aligned = run_phase_alignment(stack)
+    crop = aligned.crop_region
 
     np.testing.assert_allclose(aligned.positions, [(0.0, 0.0), (2.0, -1.0), (5.0, 1.0)])
     for image in aligned.data:
-        np.testing.assert_array_equal(image, original_data[0])
+        np.testing.assert_array_equal(
+            image[crop.y : crop.y + crop.height, crop.x : crop.x + crop.width],
+            original_data[0][crop.y : crop.y + crop.height, crop.x : crop.x + crop.width],
+        )
     np.testing.assert_array_equal(stack.data, original_data)
+
+
+def test_phase_alignment_does_not_wrap_shifted_borders_into_preview() -> None:
+    stack = _raw_stack_from_positions([(0, 0), (3, 0)])
+
+    aligned = run_phase_alignment(stack)
+
+    assert aligned.positions[1] == (3.0, 0.0)
+    np.testing.assert_array_equal(aligned.data[1][:, -3:], np.zeros((32, 3), dtype=np.uint16))
 
 
 def test_phase_alignment_preserves_xy_pixel_size() -> None:

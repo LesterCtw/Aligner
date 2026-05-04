@@ -85,7 +85,10 @@ def load_raw_stack(
             )
         )
 
-    resolved_xy_pixel_size_nm = _read_xy_pixel_size_nm(files[0]) or xy_pixel_size_nm
+    resolved_xy_pixel_size_nm = _resolve_stack_xy_pixel_size_nm(
+        files,
+        manual_xy_pixel_size_nm=xy_pixel_size_nm,
+    )
     if resolved_xy_pixel_size_nm is None or resolved_xy_pixel_size_nm <= 0:
         raise ValueError("XY pixel size must be greater than zero nm.")
 
@@ -132,6 +135,26 @@ def _read_xy_pixel_size_nm(path: Path) -> float | None:
             raise ValueError("TIFF XY pixel size metadata must use the same X and Y resolution.")
 
         return unit_nm / x_pixels_per_unit
+
+
+def _resolve_stack_xy_pixel_size_nm(
+    files: list[Path],
+    *,
+    manual_xy_pixel_size_nm: float | None,
+) -> float | None:
+    metadata_values = [
+        value
+        for path in files
+        if (value := _read_xy_pixel_size_nm(path)) is not None
+    ]
+    if not metadata_values:
+        return manual_xy_pixel_size_nm
+
+    resolved = metadata_values[0]
+    if any(not np.isclose(value, resolved) for value in metadata_values[1:]):
+        raise ValueError("TIFF XY pixel size metadata must be consistent across the stack.")
+
+    return resolved
 
 
 def _resolution_value_to_float(value: object) -> float:

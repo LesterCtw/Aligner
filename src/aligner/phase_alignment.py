@@ -8,13 +8,14 @@ from aligner.bad_slices import (
     mark_phase_suspicious_slices,
     phase_response_floor,
 )
-from aligner.models import AlignedCropRegion, AlignedStack, PairwiseEdge, RawStack
+from aligner.models import AlignedStack, PairwiseEdge, RawStack
+from aligner.transforms import apply_integer_translations, compute_common_valid_crop_region
 
 
 def run_phase_alignment(stack: RawStack, *, max_pair_distance: int = 3) -> AlignedStack:
     edges = create_phase_correlation_edges(stack, max_pair_distance=max_pair_distance)
     positions = solve_global_positions(edges, slice_count=stack.data.shape[0])
-    data = _apply_integer_alignment(stack.data, positions)
+    data = apply_integer_translations(stack.data, positions)
     height, width = stack.data.shape[1:]
     return AlignedStack(
         data=data,
@@ -22,7 +23,7 @@ def run_phase_alignment(stack: RawStack, *, max_pair_distance: int = 3) -> Align
         slice_spacing_nm=stack.slice_spacing_nm,
         edges=edges,
         positions=positions,
-        crop_region=_compute_common_valid_crop_region(
+        crop_region=compute_common_valid_crop_region(
             positions,
             width=width,
             height=height,
@@ -98,50 +99,6 @@ def _solve_axis(edges: list[PairwiseEdge], *, slice_count: int, axis: str) -> li
 
     solution, *_ = np.linalg.lstsq(np.vstack(rows), np.array(values), rcond=None)
     return [0.0, *[float(value) for value in solution]]
-
-
-def _apply_integer_alignment(
-    data: NDArray[np.integer],
-    positions: list[tuple[float, float]],
-) -> NDArray[np.integer]:
-    aligned = np.empty_like(data)
-    for index, (dx, dy) in enumerate(positions):
-        aligned[index] = np.roll(
-            data[index],
-            shift=(-int(round(dy)), -int(round(dx))),
-            axis=(0, 1),
-        )
-    return aligned
-
-
-def _compute_common_valid_crop_region(
-    positions: list[tuple[float, float]],
-    *,
-    width: int,
-    height: int,
-) -> AlignedCropRegion:
-    left = 0
-    top = 0
-    right = width
-    bottom = height
-
-    for dx, dy in positions:
-        x = int(round(dx))
-        y = int(round(dy))
-        left = max(left, 0 if x >= 0 else -x)
-        top = max(top, 0 if y >= 0 else -y)
-        right = min(right, width - x if x >= 0 else width)
-        bottom = min(bottom, height - y if y >= 0 else height)
-
-    if right <= left or bottom <= top:
-        raise ValueError("Alignment transforms have no common valid crop region.")
-
-    return AlignedCropRegion(
-        x=left,
-        y=top,
-        width=right - left,
-        height=bottom - top,
-    )
 
 
 def _estimate_integer_shift(

@@ -1,171 +1,173 @@
 # Aligner Session Memory
 
-This file records project context for future agents. `README.md` remains the source of truth for current project status; this file explains the discussion state and unresolved decisions.
+這個檔案記錄給未來 agents 使用的 project context。`README.md` 仍然是目前專案狀態的唯一事實來源；這個檔案說明 discussion state 和 unresolved decisions。
 
 ## Current Repo State
 
-- Local path: `/Users/lesterc/Project/Aligner`
-- GitHub private repo: `https://github.com/LesterCtw/Aligner`
-- Default branch: `main`
-- Initial commit pushed: `1cf487d Initialize Aligner project scaffold`
-- Current implementation is a scaffold, not the full product.
+- Local path：`/Users/lesterc/Project/Aligner`
+- GitHub private repo：`https://github.com/LesterCtw/Aligner`
+- Default branch：`main`
+- Initial commit pushed：`1cf487d Initialize Aligner project scaffold`
+- Current implementation 是 scaffold，還不是完整產品。
 
-Implemented scaffold:
+已實作 scaffold：
 
-- Python package under `src/aligner`
-- `uv` project with `pyproject.toml` and `uv.lock`
-- CLI entry point: `aligner`
-- Minimal PySide6 GUI entry point: `uv run aligner gui`
-- Dependency probe: `uv run aligner probe`
-- TIFF discovery for `.tif` / `.tiff`
+- `src/aligner` 底下的 Python package
+- 使用 `pyproject.toml` 和 `uv.lock` 的 `uv` project
+- CLI entry point：`aligner`
+- Minimal PySide6 GUI entry point：`uv run aligner gui`
+- Dependency probe：`uv run aligner probe`
+- `.tif` / `.tiff` 的 TIFF discovery
 - Natural sort
 - Slice spacing unit conversion to nm
-- Slice spacing input in the PySide6 UI with `nm` and `um` units
-- XY pixel size input in the PySide6 UI in `nm`
-- Validated Raw Stack loading for 8-bit and 16-bit single-channel TIFF files
-- Raw Stack loading records XY pixel size from TIFF resolution metadata when available
-- Raw Stack loading uses the toolbar XY pixel size value when TIFF metadata is missing
-- Raw Stack loading fails clearly when XY pixel size is missing or invalid
-- Raw Stack metadata records for filename, original index, z position, size, dtype, and XY pixel size
-- PySide6 Open Folder flow for loading a Raw Stack into the UI
-- Natural file order and physical spacing summary in the UI
-- 2D raw slice viewer with slider navigation
-- Raw XY / XZ / YZ Orthogonal Preview generation and display
-- VTK + Qt 3D preview rendering shell in the main preview area
-- Raw Stack threshold iso-surface rendering from a display-only preview volume
-- Aligned Stack threshold iso-surface rendering after Run Alignment from the
-  same display-only preview volume path
-- Main UI layout with left project information, right upper Threshold
-  Iso-surface Preview shell, and right lower supporting Orthogonal Preview
-- Identity Preview Stack TIFF export from the loaded Raw Stack
-- Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
-- Phase-correlation-only Preview Alignment as a degraded/debug path
-- Pairwise phase correlation edges for slice distances 1 to 3 with dx, dy, response, weight, and method metadata
-- Weighted registration graph solve for non-cumulative global coarse XY positions
-- Phase-only Aligned Stack generation and display in the existing Orthogonal Preview panel
-- Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
-- Phase-only Preview Stack export applies a common Aligned Crop Region to exclude invalid shift borders
-- Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
-- Behavior tests for loading, provenance fields, unsupported input errors, UI slice spacing input, XY pixel size metadata/fallback, preview generation, identity export, and UI export enablement
-- Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
-- RAFT input foundation with stack-level robust normalization, grayscale-to-3-channel conversion, reflect padding, crop-back, and mock smoke metadata
-- Constrained RAFT local alignment MVS using small/mock RAFT flow inputs
-- Balanced constrained flow parameters fixed at max displacement 4 px, 64 px control grid spacing, smoothing sigma 1 grid cell, and working scale 1.0
-- Run Alignment now executes phase correlation followed by constrained RAFT local alignment and displays the constrained RAFT Aligned Stack in the Orthogonal Preview panel
-- Constrained RAFT export metadata records backend, degraded mode, working scale, RAFT normalization range, RAFT Padding/crop-back provenance, Balanced constraints, control grid shape, and raw/constrained displacement maxima
-- Internal Bad Slice detection and preview-only replacement MVS
-- Phase graph confidence can mark suspicious slices without replacement
-- RAFT/control-grid sanity is required before a suspicious slice becomes Alignment-Unusable
-- Confirmed Bad Slices are replaced only in the preview stack by interpolation from surrounding good slices
-- Bad Slice replacement preserves slice count, original index, z position, and original input files
-- Bad Slice export metadata records per-slice output dimensions, status, display source, and replacement source slices
-- Behavior tests for constrained flow clipping, constrained flow shape, local preview warp integration, UI Run Alignment, and constrained RAFT export metadata
-- Behavior tests for Raw and Aligned Stack 3D preview source labeling,
-  Run Alignment preview refresh, and active-stack threshold rebuild behavior
-- Behavior tests for two-stage Bad Slice confirmation, no replacement from phase signal alone, preview-only provenance, preserved slice rhythm, complete RAFT input provenance export, and final aligned TIFF export contract
+- PySide6 UI 中支援 `nm` 和 `um` units 的 slice spacing input
+- PySide6 UI 中以 `nm` 輸入的 XY pixel size input
+- 8-bit 和 16-bit single-channel TIFF files 的 validated Raw Stack loading
+- Raw Stack loading 會在可用時從 TIFF resolution metadata 記錄 XY pixel size
+- TIFF metadata 缺失時，Raw Stack loading 會使用 toolbar XY pixel size value
+- XY pixel size 缺失或 invalid 時，Raw Stack loading 會清楚失敗
+- Raw Stack metadata records：filename、original index、z position、size、dtype 和 XY pixel size
+- PySide6 Open Folder flow，可把 Raw Stack 載入 UI
+- UI 中的 natural file order 和 physical spacing summary
+- 具有 slider navigation 的 2D raw slice viewer
+- Raw XY / XZ / YZ Orthogonal Preview generation 和 display
+- Main preview area 中的 VTK + Qt 3D preview rendering shell
+- 從 display-only preview volume 產生的 Raw Stack threshold iso-surface rendering
+- Run Alignment 後，從相同 display-only preview volume path 產生的 Aligned Stack threshold iso-surface rendering
+- Main UI layout：左側 project information、右上 Threshold Iso-surface Preview shell、右下 supporting Orthogonal Preview
+- 從已載入 Raw Stack 匯出的 Identity Preview Stack TIFF export
+- Identity export metadata JSON，包含 input mapping、slice provenance、dimensions、dtype、software version 和 identity alignment status
+- Phase-correlation-only Preview Alignment，作為 degraded/debug path
+- Slice distances 1 到 3 的 pairwise phase correlation edges，包含 dx、dy、response、weight 和 method metadata
+- Weighted registration graph solve，用於 non-cumulative global coarse XY positions
+- Phase-only Aligned Stack generation，並顯示在既有 Orthogonal Preview panel
+- Phase-only Preview Stack export，包含 coarse XY positions 和 phase alignment method metadata
+- Phase-only Preview Stack export 會套用 common Aligned Crop Region，以排除 invalid shift borders
+- Phase-only export metadata 會記錄 Aligned Crop Region 和 cropped output dimensions
+- Integer alignment transforms 和 Aligned Crop Region calculation 集中在 dedicated transform module
+- Phase alignment 使用 non-wrapping integer translations，避免 invalid shifted borders 被 wrap 回 Preview Alignment image
+- Behavior tests 涵蓋 loading、provenance fields、unsupported input errors、UI slice spacing input、XY pixel size metadata/fallback、preview generation、identity export 和 UI export enablement
+- Raw Stack loading 會拒絕 stack 中 TIFF XY pixel size metadata 不一致的情況
+- Behavior tests 涵蓋 phase correlation edge creation、graph solving、phase-only aligned stack generation、UI alignment、phase-only export metadata 和 common crop export dimensions
+- Behavior tests 涵蓋 non-wrapping transforms、empty Aligned Crop Region rejection、inconsistent Stack Physical Spacing metadata，以及 UI alignment/backend failure reporting
+- RAFT input foundation，包含 stack-level robust normalization、grayscale-to-3-channel conversion、reflect padding、crop-back 和 mock smoke metadata
+- RAFT runtime probing 集中在 RAFT module，並由 CLI probe output 重複使用
+- Constrained RAFT local alignment MVS，使用 small/mock RAFT flow inputs
+- Balanced constrained flow parameters 固定為 max displacement 4 px、64 px control grid spacing、smoothing sigma 1 grid cell 和 working scale 1.0
+- Run Alignment 現在會先執行 phase correlation，再執行 constrained RAFT local alignment，並在 Orthogonal Preview panel 顯示 constrained RAFT Aligned Stack
+- Constrained RAFT export metadata 記錄 backend、degraded mode、working scale、RAFT normalization range、RAFT Padding/crop-back provenance、Balanced constraints、control grid shape 和 raw/constrained displacement maxima
+- Internal Bad Slice detection 和 preview-only replacement MVS
+- Phase graph confidence 可以標記 suspicious slices，而不會直接 replacement
+- Suspicious slice 要成為 Alignment-Unusable 前，必須通過 RAFT/control-grid sanity 確認
+- Confirmed Bad Slices 只會在 preview stack 中，用 surrounding good slices 的 interpolation 取代
+- Bad Slice replacement 會保留 slice count、original index、z position 和 original input files
+- Bad Slice export metadata 記錄 per-slice output dimensions、status、display source 和 replacement source slices
+- Behavior tests 涵蓋 constrained flow clipping、constrained flow shape、local preview warp integration、UI Run Alignment 和 constrained RAFT export metadata
+- Behavior tests 涵蓋 shared CLI / RAFT runtime probe formatting 和 CUDA readiness reporting
+- Behavior tests 涵蓋 Raw and Aligned Stack 3D preview source labeling、Run Alignment preview refresh 和 active-stack threshold rebuild behavior
+- Behavior tests 涵蓋 two-stage Bad Slice confirmation、no replacement from phase signal alone、preview-only provenance、preserved slice rhythm、complete RAFT input provenance export 和 final aligned TIFF export contract
 
-Last known verification:
+Last known verification：
 
-- `uv run pytest`: passed, 74 tests
-- `uv run ruff check .`: passed
-- `uv run aligner probe`: core dependencies available; optional RAFT backend
-  unavailable locally because torch/torchvision are not installed
+- `uv run pytest`：passed，104 tests
+- `uv run ruff check .`：passed
+- `uv run aligner probe`：core dependencies available；optional RAFT backend 在本機 unavailable，因為尚未安裝 torch/torchvision
 
 ## Product Positioning
 
-Aligner is a PySide6 desktop tool for FIB serial slice image preview alignment in semiconductor failure analysis.
+Aligner 是用於 semiconductor failure analysis 的 PySide6 desktop tool，用來做 FIB serial slice image preview alignment。
 
-The output is a visual preview / stabilization result, not metrology-grade 3D reconstruction.
+輸出是 visual preview / stabilization result，不是 metrology-grade 3D reconstruction。
 
-Primary goals:
+Primary goals：
 
-- Load multiple single-slice `.tif` / `.tiff` files from a folder.
-- Preserve original slice order, z-index, and slice depth rhythm.
-- Use natural sort and show sorting preview.
-- Let the user input slice-to-slice spacing and XY pixel size, internally stored in nm.
-- Use phase correlation for coarse global XY alignment.
-- Use graph-based global position solving to avoid cumulative drift.
-- Use RAFT as the v1 local shift alignment method.
-- Constrain RAFT flow before applying any warp.
-- Detect bad slices internally and replace them for preview without changing slice count.
-- Export aligned preview TIFF sequence and metadata JSON.
-- Never modify original input files.
+- 從 folder 載入多個 single-slice `.tif` / `.tiff` files。
+- 保留 original slice order、z-index 和 slice depth rhythm。
+- 使用 natural sort 並顯示 sorting preview。
+- 讓使用者輸入 slice-to-slice spacing 和 XY pixel size，內部以 nm 儲存。
+- 使用 phase correlation 做 coarse global XY alignment。
+- 使用 graph-based global position solving 避免 cumulative drift。
+- 使用 RAFT 作為 v1 local shift alignment method。
+- 在套用任何 warp 前，先 constrain RAFT flow。
+- 內部偵測 bad slices，並在不改變 slice count 的情況下為 preview 取代它們。
+- 匯出 aligned preview TIFF sequence 和 metadata JSON。
+- 絕不修改 original input files。
 
 ## Locked Decisions
 
-These decisions were confirmed in conversation:
+以下 decisions 已在對話中確認：
 
-- First delivered version must include actually runnable RAFT local alignment.
-- It is acceptable to implement the non-RAFT pipeline first during development.
-- It is not acceptable for v1 delivery to contain only a RAFT interface with no working backend.
-- `phase correlation only` can exist as debug / degraded fallback.
-- Full v1 acceptance requires `phase correlation + constrained RAFT`.
-- Current constrained RAFT implementation is an MVS that uses mock/small flow inputs; real `torchvision.models.optical_flow` RAFT remains required for full v1 acceptance.
-- Normal UI should not show interpolation / replacement labels for bad slices.
-- Metadata must preserve replacement records.
-- Bad slices must not be skipped or deleted; z-index and slice count must be preserved.
-- Original data must remain untouched.
+- 第一個交付版本必須包含實際可執行的 RAFT local alignment。
+- 開發時可以先實作 non-RAFT pipeline。
+- v1 delivery 不可只有 RAFT interface、但沒有 working backend。
+- `phase correlation only` 可以作為 debug / degraded fallback。
+- 完整 v1 acceptance 需要 `phase correlation + constrained RAFT`。
+- 目前 constrained RAFT implementation 是使用 mock/small flow inputs 的 MVS；完整 v1 acceptance 仍需要真實 `torchvision.models.optical_flow` RAFT。
+- Normal UI 不應顯示 bad slices 的 interpolation / replacement labels。
+- Metadata 必須保留 replacement records。
+- Bad slices 不可 skip 或 delete；z-index 和 slice count 必須保留。
+- Original data 必須保持 untouched。
 
 ## Recommended Build Sequence
 
-Use this sequence unless the user changes priorities:
+除非使用者改變優先順序，否則使用這個 sequence：
 
-1. Project loading: folder selection, TIFF discovery, natural sort, metadata read, size consistency check.
-2. Slice spacing: UI input, unit conversion to nm, current depth display.
-3. 2D viewer: original image display, slider browsing, zoom / pan basics.
-4. Phase correlation: band-pass derived image, pairwise edges, response/confidence.
-5. Global graph solve: non-cumulative coarse XY positions.
-6. Identity preview export baseline and aligned preview generation / export metadata skeleton.
-7. RAFT constraints: clipping, smoothing/coarse grid, interpolation, and constrained preview warp.
-8. RAFT backend: actual executable model path with dependency and weight handling.
-9. Bad slice scoring and replacement with metadata records.
-10. Export aligned preview TIFF sequence.
+1. Project loading：folder selection、TIFF discovery、natural sort、metadata read、size consistency check。
+2. Slice spacing：UI input、unit conversion to nm、current depth display。
+3. 2D viewer：original image display、slider browsing、zoom / pan basics。
+4. Phase correlation：band-pass derived image、pairwise edges、response/confidence。
+5. Global graph solve：non-cumulative coarse XY positions。
+6. Identity preview export baseline 和 aligned preview generation / export metadata skeleton。
+7. RAFT constraints：clipping、smoothing/coarse grid、interpolation 和 constrained preview warp。
+8. RAFT backend：actual executable model path，包含 dependency 和 weight handling。
+9. Bad slice scoring 和 replacement，包含 metadata records。
+10. Export aligned preview TIFF sequence。
 
 ## Next Open Question
 
-Continue the grill-me discussion from here:
+從這裡延續 grill-me discussion：
 
-**What should the v1 RAFT hardware requirement be?**
+**v1 RAFT hardware requirement 應該是什麼？**
 
-Recommended answer:
+Recommended answer：
 
-- GPU required for full v1 functionality.
-- CPU may exist only as degraded fallback / debug / tiny sample mode.
-- CPU fallback should not count as the full acceptance path.
+- 完整 v1 functionality 需要 GPU。
+- CPU 只能作為 degraded fallback / debug / tiny sample mode。
+- CPU fallback 不應算作完整 acceptance path。
 
-Reason:
+Reason：
 
-- RAFT on CPU is likely too slow for realistic FIB stacks.
-- Requiring CPU as a full support target would force early performance complexity.
-- A GPU requirement makes the v1 acceptance path clearer and more honest.
+- RAFT 在 CPU 上對 realistic FIB stacks 可能太慢。
+- 要求 CPU 作為完整 support target，會迫使早期加入 performance complexity。
+- GPU requirement 讓 v1 acceptance path 更清楚，也更誠實。
 
-Trade-off:
+Trade-off：
 
-- The product has a stricter runtime environment requirement.
-- Development can focus on the intended quality path instead of broad fallback behavior.
+- 產品有更嚴格的 runtime environment requirement。
+- 開發可以專注在預期 quality path，而不是廣泛 fallback behavior。
 
 ## Known Open Questions
 
-These remain unresolved:
+這些問題仍未解決：
 
-- Bad slice detection threshold: automatic only, manual override, or both?
-- Expected bit depth: 8-bit, 16-bit, or both?
-- Need for very large image lazy loading in v1?
-- Need for batch export of downsampled preview movie?
-- Need for manual good / bad slice override?
-- Need for manual reference keyframe selection?
-- Need for hidden debug report in v1?
-- RAFT implementation source: official, third-party, or internal wrapper?
-- RAFT input: raw grayscale, band-pass, or dual-path?
-- Default constrained RAFT max displacement?
-- Need for tile-based RAFT for large images?
+- Bad slice detection threshold：automatic only、manual override，或兩者都要？
+- Expected bit depth：8-bit、16-bit，或兩者都要？
+- v1 是否需要 very large image lazy loading？
+- 是否需要 batch export downsampled preview movie？
+- 是否需要 manual good / bad slice override？
+- 是否需要 manual reference keyframe selection？
+- v1 是否需要 hidden debug report？
+- RAFT implementation source：official、third-party，或 internal wrapper？
+- RAFT input：raw grayscale、band-pass，或 dual-path？
+- Default constrained RAFT max displacement？
+- 是否需要 large images 的 tile-based RAFT？
 
 ## Implementation Constraints
 
-- Use `uv` for Python dependency and command execution.
-- Keep README updated when project status or product decisions change.
-- Prefer small, testable changes.
-- Do not add metrology claims.
-- Do not add unrestricted deformable registration.
-- Do not add CLAHE, gamma correction, or global histogram normalization as default alignment preprocessing.
-- Keep 16-bit image pipeline where practical; display-only conversions may use derived images.
+- 使用 `uv` 進行 Python dependency 和 command execution。
+- 專案狀態或 product decisions 改變時，要保持 README 最新。
+- 偏好 small, testable changes。
+- 不加入 metrology claims。
+- 不加入 unrestricted deformable registration。
+- 不加入 CLAHE、gamma correction 或 global histogram normalization 作為預設 alignment preprocessing。
+- 在可行時保留 16-bit image pipeline；display-only conversions 可以使用 derived images。

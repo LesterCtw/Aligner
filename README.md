@@ -1,303 +1,276 @@
 # Aligner
 
-Aligner is a planned PySide6 desktop tool for FIB serial slice preview alignment.
+Aligner 是計畫中的 PySide6 desktop tool，用於 FIB serial slice preview alignment。
 
-Aligner v1 produces Preview Alignment output for visual stabilization and review. It is not metrology-grade 3D reconstruction.
+Aligner v1 會產生 Preview Alignment output，用於 visual stabilization 和 review。它不是 metrology-grade 3D reconstruction，也就是 not metrology-grade 3D reconstruction。
 
 ## Brand And App Icon
 
-The formal product name is `Aligner`.
+正式產品名稱是 `Aligner`。
 
-Windows packaging and runtime window icons must use:
+Windows packaging 和 runtime window icons 必須使用：
 
 ```text
 assets/icons/aligner_icon.ico
 ```
 
-The icon follows the shared Project icon style used by Aligner, Denoiser, and Measurer: dark rounded-square background, blue product initial, and no bottom wordmark.
+Icon 遵循 Aligner、Denoiser 和 Measurer 共用的 Project icon style：深色 rounded-square background、藍色產品首字母，不放底部 wordmark。
 
-The target workflow is:
+目標 workflow：
 
-1. Load a folder of `.tif` / `.tiff` slice images.
-2. Natural-sort files into slice order.
-3. Preserve original slice index, slice spacing, and XY pixel size.
-4. Build a coarse global XY alignment with phase correlation and graph solving.
-5. Prepare RAFT input with stack-level robust range normalization and grayscale-to-3-channel tensor conversion.
-6. Add constrained RAFT local alignment for preview stabilization.
-7. Detect and replace bad slices internally while keeping the visible slice rhythm continuous.
-8. Show raw and aligned XY / XZ / YZ Orthogonal Preview views.
-9. Export an aligned preview stack and metadata without modifying original input files.
+1. 載入 `.tif` / `.tiff` slice images 的資料夾。
+2. 用 natural sort 將檔案排成 slice order。
+3. 保留 original slice index、slice spacing 和 XY pixel size。
+4. 使用 phase correlation 和 graph solving 建立 coarse global XY alignment。
+5. 使用 stack-level robust range normalization 和 grayscale-to-3-channel tensor conversion 準備 RAFT input。
+6. 加入 constrained RAFT local alignment，用於 preview stabilization。
+7. 內部偵測並取代 bad slices，同時讓可見的 slice rhythm 保持連續。
+8. 顯示 raw 和 aligned XY / XZ / YZ Orthogonal Preview views。
+9. 匯出 aligned preview stack 和 metadata，不修改 original input files。
 
 ## Runtime Target
 
-Full v1 acceptance targets Windows 11 + NVIDIA CUDA GPU.
+完整 v1 acceptance target 是 Windows 11 + NVIDIA CUDA GPU。
 
-macOS is for development and tiny smoke/mock checks only. A macOS run can verify scaffold behavior and small mocked paths, but it is not the full RAFT acceptance environment.
+macOS 只用於開發和 tiny smoke/mock checks。macOS is for development and tiny smoke/mock checks only。macOS run 可以驗證 scaffold behavior 和小型 mocked paths，但不是完整 RAFT acceptance environment。
 
-The Windows CUDA acceptance workflow is documented in
-[docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md).
+Windows CUDA acceptance workflow 記錄於
+[docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md)。
 
-The current human verification tracker is documented in
-[docs/manual-verification.md](docs/manual-verification.md).
+目前 human verification tracker 記錄於
+[docs/manual-verification.md](docs/manual-verification.md)。
 
-The Windows 11 + Python 3.12.8 pip-only setup and test workflow is documented in
-[docs/windows-pip-setup.md](docs/windows-pip-setup.md).
+Windows 11 + Python 3.12.8 pip-only setup 和 test workflow 記錄於
+[docs/windows-pip-setup.md](docs/windows-pip-setup.md)。
 
 ## Current Status
 
-This repository is initialized as a Python project scaffold.
+這個 repository 已初始化為 Python project scaffold。
 
-GitHub repository:
+GitHub repository：
 
-- Private repo: <https://github.com/LesterCtw/Aligner>
-- Default branch: `main`
+- Private repo：<https://github.com/LesterCtw/Aligner>
+- Default branch：`main`
+
+目前已實作：
 
 Implemented now:
 
-- Python package layout under `src/aligner`
+- `src/aligner` 底下的 Python package layout
 - CLI entry point
 - Minimal PySide6 GUI entry point
 - TIFF file discovery
 - Natural file sorting
 - Slice spacing unit conversion to nm
-- Slice spacing input in the PySide6 UI with `nm` and `um` units
-- XY pixel size input in the PySide6 UI in `nm`
-- Validated Raw Stack loading for 8-bit and 16-bit single-channel TIFF files
-- Raw Stack loading records XY pixel size from TIFF resolution metadata when available
-- Raw Stack loading uses the toolbar XY pixel size value when TIFF metadata is missing
-- Raw Stack loading fails clearly when XY pixel size is missing or invalid
-- Raw Stack metadata records for filename, original index, z position, size, dtype, and XY pixel size
-- PySide6 Open Folder flow for loading a Raw Stack into the UI
-- Natural file order and physical spacing summary in the UI
-- Project summary formatting is concentrated in a dedicated module
-- 2D raw slice viewer with slider navigation
-- 2D image display scaling and QLabel rendering are concentrated in a dedicated ImageView module
-- Raw XY / XZ / YZ Orthogonal Preview generation and display
-- Threshold histogram statistics for loaded Raw Stacks in original uint8 /
-  uint16 intensity units
-- Otsu default threshold selection after Raw Stack load
-- Threshold pending/applied state and summary formatting are concentrated in
-  the threshold module
-- Threshold slider, numeric input, and Apply / Enter behavior for committing
-  an applied threshold without rebuilding while dragging
-- VTK + Qt 3D preview rendering shell in the main preview area
-- Raw Stack threshold iso-surface rendering from a display-only preview volume
-- Aligned Stack threshold iso-surface rendering after Run Alignment from the
-  same display-only preview volume path
-- Preview volume generation uses XY pixel size and slice spacing to preserve
-  physical preview proportions
-- Preview volume generation can downsample/interpolate Z slices for display
-  while preserving XY detail first
-- Main UI layout with left project information, right upper Threshold
-  Iso-surface Preview shell, and right lower supporting Orthogonal Preview
-- Identity Preview Stack export from the loaded Raw Stack
-- Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
-- Preview Stack metadata generation is concentrated in a dedicated module separate from TIFF file writing
-- Phase-correlation-only Preview Alignment as a degraded/debug path
-- Phase-only alignment, pairwise phase edge creation, and global graph solving
-  are concentrated in a dedicated phase alignment module
-- Pairwise phase correlation edges for slice distances 1 to 3 with dx, dy, response, weight, and method metadata
-- Weighted registration graph solve for non-cumulative global coarse XY positions
-- Robust graph solve now ignores very low-confidence phase edges so isolated
-  outlier slices do not create large position spikes
-- Phase-only Aligned Stack generation and display in the existing Orthogonal Preview panel
-- Phase-only Preview Stack export with coarse XY positions and phase alignment method metadata
-- Phase-only Preview Stack export applies a common Aligned Crop Region to exclude invalid shift borders
-- Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
-- RAFT input foundation with stack-level robust range normalization, grayscale-to-3-channel tensor conversion, reflect padding, crop-back, and a mock smoke backend for development
-- RAFT smoke metadata records normalization range, backend name, device/degraded mode, and padding behavior
-- RAFT input provenance generation is concentrated in the RAFT module
-- Optional real RAFT adapter using `torchvision.models.optical_flow`
-- RAFT backend selection through `ALIGNER_RAFT_BACKEND=mock|torchvision|auto`
-- RAFT backend selection and fallback rules are concentrated in the RAFT module
-- Constrained RAFT local alignment MVS using small/mock RAFT flow inputs
-- Balanced constrained flow parameters fixed at max displacement 4 px, 64 px control grid spacing, smoothing sigma 1 grid cell, and working scale 1.0
-- Run Alignment now executes phase correlation followed by constrained RAFT local alignment and shows the constrained RAFT Aligned Stack in the Orthogonal Preview panel
-- User-visible app status message formatting is concentrated in a dedicated module
-- Constrained RAFT Preview Stack export metadata records RAFT backend, degraded mode, working resolution scale, RAFT normalization range, RAFT Padding/crop-back provenance, Balanced constraint parameters, control grid shape, and raw/constrained flow displacement maxima
-- Internal Bad Slice detection and preview-only replacement MVS
-- Bad Slice marking, Alignment-Unusable confirmation, and preview-only
-  replacement are concentrated in a dedicated module for local rule changes
-- Phase graph confidence can mark suspicious slices without replacing normal
-  slices that merely have low absolute response values
-- RAFT/control-grid sanity is required before a suspicious slice becomes Alignment-Unusable
-- The degraded mock backend can use phase bridge evidence as a mock sanity
-  signal so macOS smoke data can exercise Bad Slice replacement without
-  pretending to be full RAFT acceptance
-- Confirmed Bad Slices are replaced only in the preview stack by interpolation from surrounding good slices
-- Bad Slice replacement preserves slice count, original index, z position, and original input files
-- Preview Stack export metadata records per-slice output dimensions, Bad Slice status, display source, and replacement source slices
-- Basic tests for discovery, sorting, and unit conversion
-- Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
-- Focused behavior tests for Project summary formatting
-- Focused behavior tests for 2D image display scaling
-- Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, UI slice spacing input, TIFF XY pixel size metadata, manual XY fallback, and UI XY summary
-- Behavior tests for threshold histograms, Otsu defaults, pending threshold
-  edits, and explicit Apply / Enter threshold commits
-- Focused behavior tests for threshold pending/applied state and summary text
-- Behavior tests for Raw Stack threshold iso-surface preview volume spacing,
-  display-only non-mutation behavior, and applied-threshold preview rebuilds
-- Behavior tests for Raw and Aligned Stack 3D preview source labeling,
-  Run Alignment preview refresh, and active-stack threshold rebuild behavior
-- Focused behavior tests for user-visible app status messages
-- Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
-- Focused behavior tests for Preview Stack metadata generation without filesystem side effects
-- Behavior tests verifying Threshold Iso-surface Preview state does not affect
-  Raw or Aligned Stack Preview Stack export files or metadata
-- Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
-- Phase alignment module remains re-exported through the alignment module for
-  backward-compatible callers
-- Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
-- Behavior tests for RAFT input provenance generation
-- Behavior tests for RAFT backend selection through the RAFT module interface
-- Behavior tests for constrained flow clipping, constrained flow shape, local preview warp integration, UI Run Alignment, and constrained RAFT export metadata
-- Behavior tests for two-stage Bad Slice confirmation, no replacement on phase signal alone, preview-only replacement provenance, preserved slice rhythm, Bad Slice export metadata, complete RAFT input provenance export, and final aligned TIFF export contract
-- Focused behavior tests for the Bad Slice rule module interface
+- PySide6 UI 中支援 `nm` 和 `um` units 的 slice spacing input
+- PySide6 UI 中以 `nm` 輸入的 XY pixel size input
+- 8-bit 和 16-bit single-channel TIFF files 的 validated Raw Stack loading
+- Raw Stack loading 會在可用時從 TIFF resolution metadata 記錄 XY pixel size
+- Raw Stack loading 會拒絕 stack 中 TIFF XY pixel size metadata 不一致的情況
+- TIFF metadata 缺失時，Raw Stack loading 會使用 toolbar XY pixel size value
+- XY pixel size 缺失或 invalid 時，Raw Stack loading 會清楚失敗
+- Raw Stack metadata records：filename、original index、z position、size、dtype 和 XY pixel size
+- PySide6 Open Folder flow，可把 Raw Stack 載入 UI
+- UI 中的 natural file order 和 physical spacing summary
+- 具有 slider navigation 的 2D raw slice viewer
+- 2D image display scaling 和 QLabel rendering 集中在 dedicated ImageView module
+- Raw XY / XZ / YZ Orthogonal Preview generation 和 display
+- 載入 Raw Stacks 後，以原始 uint8 / uint16 intensity units 計算 threshold histogram statistics
+- Raw Stack load 後的 Otsu default threshold selection
+- Threshold pending/applied state 和 summary formatting 集中在 threshold module
+- Threshold slider、numeric input，以及用 Apply / Enter commit applied threshold 的行為；拖曳時不 rebuild
+- Main preview area 中的 VTK + Qt 3D preview rendering shell
+- 從 display-only preview volume 產生的 Raw Stack threshold iso-surface rendering。Raw Stack threshold iso-surface rendering from a display-only preview volume
+- Run Alignment 後，從相同 display-only preview volume path 產生的 Aligned Stack threshold iso-surface rendering。Aligned Stack threshold iso-surface rendering after Run Alignment
+- Preview volume generation 使用 XY pixel size 和 slice spacing 保持 physical preview proportions
+- Preview volume generation 可為 display downsample/interpolate Z slices，同時優先保留 XY detail
+- Main UI layout：左側 project information、右上 Threshold Iso-surface Preview shell、右下 supporting Orthogonal Preview
+- 從已載入 Raw Stack 匯出的 Identity Preview Stack
+- Identity export metadata JSON，包含 input mapping、slice provenance、dimensions、dtype、software version 和 identity alignment status
+- Preview Stack metadata generation 集中在 dedicated module，和 TIFF file writing 分離
+- Phase-correlation-only Preview Alignment，作為 degraded/debug path
+- Phase-only alignment、pairwise phase edge creation 和 global graph solving 集中在 dedicated phase alignment module
+- Slice distances 1 到 3 的 pairwise phase correlation edges，包含 dx、dy、response、weight 和 method metadata
+- Weighted registration graph solve，用於 non-cumulative global coarse XY positions
+- Robust graph solve 現在會忽略 very low-confidence phase edges，避免 isolated outlier slices 造成大型 position spikes
+- Phase-only Aligned Stack generation，並顯示在既有 Orthogonal Preview panel
+- Phase-only Preview Stack export，包含 coarse XY positions 和 phase alignment method metadata
+- Phase-only Preview Stack export 會套用 common Aligned Crop Region，以排除 invalid shift borders
+- Phase-only export metadata 會記錄 Aligned Crop Region 和 cropped output dimensions
+- Integer alignment transforms 和 Aligned Crop Region calculation 集中在 dedicated transform module
+- Phase alignment 使用 non-wrapping integer translations，避免 invalid shifted borders 被 wrap 回 Preview Alignment image
+- RAFT input foundation，包含 stack-level robust range normalization、grayscale-to-3-channel tensor conversion、reflect padding、crop-back 和 development 用 mock smoke backend
+- RAFT smoke metadata 會記錄 normalization range、backend name、device/degraded mode 和 padding behavior
+- RAFT input provenance generation 集中在 RAFT module
+- 使用 `torchvision.models.optical_flow` 的 optional real RAFT adapter
+- 透過 `ALIGNER_RAFT_BACKEND=mock|torchvision|auto` 選擇 RAFT backend
+- RAFT backend selection 和 fallback rules 集中在 RAFT module
+- RAFT runtime probing 集中在 RAFT module，並回報 torch/torchvision、CUDA availability、CUDA device 和完整 Windows CUDA RAFT readiness
+- Constrained RAFT local alignment MVS，使用 small/mock RAFT flow inputs
+- Balanced constrained flow parameters 固定為 max displacement 4 px、64 px control grid spacing、smoothing sigma 1 grid cell 和 working scale 1.0
+- Run Alignment 現在會先執行 phase correlation，再執行 constrained RAFT local alignment，並在 Orthogonal Preview panel 顯示 constrained RAFT Aligned Stack
+- Run Alignment 會在 UI status bar 回報 alignment/backend failures，不會替換已載入的 Raw Stack state
+- User-visible app status message formatting 集中在 dedicated module
+- Constrained RAFT Preview Stack export metadata 會記錄 RAFT backend、degraded mode、working resolution scale、RAFT normalization range、RAFT Padding/crop-back provenance、Balanced constraint parameters、control grid shape，以及 raw/constrained flow displacement maxima
+- Internal Bad Slice detection 和 preview-only replacement MVS
+- Bad Slice marking、Alignment-Unusable confirmation 和 preview-only replacement 集中在 dedicated module，方便局部調整規則
+- Phase graph confidence 可以標記 suspicious slices，而不會取代只是 absolute response values 偏低的 normal slices
+- Suspicious slice 要成為 Alignment-Unusable 前，必須通過 RAFT/control-grid sanity 確認
+- Degraded mock backend 可以使用 phase bridge evidence 作為 mock sanity signal，讓 macOS smoke data 能測試 Bad Slice replacement，而不假裝是完整 RAFT acceptance
+- Confirmed Bad Slices 只會在 preview stack 中，用 surrounding good slices 的 interpolation 取代
+- Bad Slice replacement 會保留 slice count、original index、z position 和 original input files
+- Preview Stack export metadata 會記錄 per-slice output dimensions、Bad Slice status、display source 和 replacement source slices
+- Discovery、sorting 和 unit conversion 的 basic tests
+- Raw Stack loading validation 和 Orthogonal Preview generation 的 behavior tests
+- Project summary formatting 的 focused behavior tests
+- 2D image display scaling 的 focused behavior tests
+- 8-bit / 16-bit Raw Stack loading、provenance fields、unsupported input errors、UI slice spacing input、TIFF XY pixel size metadata、manual XY fallback 和 UI XY summary 的 behavior tests
+- 拒絕 Raw Stack TIFF files 中 Stack Physical Spacing metadata 不一致的 behavior tests
+- Threshold histograms、Otsu defaults、pending threshold edits 和 explicit Apply / Enter threshold commits 的 behavior tests
+- Threshold pending/applied state 和 summary text 的 focused behavior tests
+- Raw Stack threshold iso-surface preview volume spacing、display-only non-mutation behavior 和 applied-threshold preview rebuilds 的 behavior tests
+- Raw and Aligned Stack 3D preview source labeling、Run Alignment preview refresh 和 active-stack threshold rebuild behavior 的 behavior tests
+- User-visible app status messages 的 focused behavior tests
+- Identity TIFF export、metadata fields、overwrite refusal 和 UI export enablement 的 behavior tests
+- Preview Stack metadata generation without filesystem side effects 的 focused behavior tests
+- 驗證 Threshold Iso-surface Preview state 不影響 Raw 或 Aligned Stack Preview Stack export files 或 metadata 的 behavior tests
+- Phase correlation edge creation、graph solving、phase-only aligned stack generation、UI alignment、phase-only export metadata 和 common crop export dimensions 的 behavior tests
+- Non-wrapping integer alignment transforms 和 empty Aligned Crop Region rejection 的 focused behavior tests
+- Phase alignment module 仍透過 alignment module re-export，支援 backward-compatible callers
+- RAFT normalization consistency、tensor conversion shape、reflect padding、crop-back 和 mock smoke metadata 的 behavior tests
+- RAFT input provenance generation 的 behavior tests
+- 透過 RAFT module interface 選擇 RAFT backend 的 behavior tests
+- Shared CLI / RAFT runtime probe formatting 和 CUDA readiness reporting 的 behavior tests
+- Constrained flow clipping、constrained flow shape、local preview warp integration、UI Run Alignment 和 constrained RAFT export metadata 的 behavior tests
+- UI alignment/backend failure reporting without crashing the app 的 behavior tests
+- Two-stage Bad Slice confirmation、no replacement on phase signal alone、preview-only replacement provenance、preserved slice rhythm、Bad Slice export metadata、complete RAFT input provenance export 和 final aligned TIFF export contract 的 behavior tests
+- Bad Slice rule module interface 的 focused behavior tests
+
+尚未實作：
 
 Not implemented yet:
 
-- Full v1 Preview Alignment acceptance verification on Windows CUDA
+- 在 Windows CUDA 上的完整 v1 Preview Alignment acceptance verification
 
-Current acceptance status:
+目前 acceptance status：
 
-- Remaining human verification is summarized in
-  [docs/manual-verification.md](docs/manual-verification.md).
-- 600-slice Threshold Iso-surface Preview acceptance is tracked in
-  [Issue #22](https://github.com/LesterCtw/Aligner/issues/22). Automated
-  behavior coverage exists for threshold controls, Raw/Aligned preview source
-  switching, and export isolation. The manual camera interaction acceptance
-  remains pending on a real desktop display with a practical 600-slice stack.
-- Real RAFT implementation work is tracked in
-  [#13](https://github.com/LesterCtw/Aligner/issues/13), which is closed.
-- Final Windows CUDA acceptance remains tracked in
-  [#12](https://github.com/LesterCtw/Aligner/issues/12).
-- macOS cannot verify CUDA execution. The remaining required check is to run
-  `ALIGNER_RAFT_BACKEND=torchvision` on Windows 11 with an NVIDIA CUDA GPU and
-  inspect the exported TIFF sequence plus metadata.
+- 剩餘 human verification 彙整於
+  [docs/manual-verification.md](docs/manual-verification.md)。
+- 600-slice Threshold Iso-surface Preview acceptance 追蹤於
+  [Issue #22](https://github.com/LesterCtw/Aligner/issues/22)。Threshold controls、Raw/Aligned preview source
+  switching 和 export isolation 已有 automated behavior coverage。manual camera interaction acceptance remains pending
+  on a real desktop display with a practical 600-slice stack。
+- Real RAFT implementation work 追蹤於
+  [#13](https://github.com/LesterCtw/Aligner/issues/13)，此 issue 已關閉。
+- Final Windows CUDA acceptance 仍追蹤於
+  [#12](https://github.com/LesterCtw/Aligner/issues/12)。
+- macOS 無法驗證 CUDA execution。剩餘必要 check 是在 Windows 11 搭配 NVIDIA CUDA GPU 上執行
+  `ALIGNER_RAFT_BACKEND=torchvision`，並檢查 exported TIFF sequence 和 metadata。
 
 ## Locked Product Decisions
 
-- Version 1 delivery must include actually runnable RAFT local alignment.
-- Development may build the non-RAFT pipeline first, but RAFT cannot remain only an interface or placeholder at delivery.
-- `phase correlation only` is allowed as a fallback / debug mode.
-- A delivery build without working RAFT is degraded mode and does not satisfy the full v1 acceptance target.
-- RAFT output must be constrained before image warping; unrestricted raw dense flow is out of scope.
-- RAFT input uses stack-level robust range normalization and grayscale-to-3-channel conversion.
-- RAFT input does not use default band-pass, CLAHE, histogram matching, gamma correction, or display contrast preprocessing.
-- RAFT padding is internal and output must be cropped back to the original image extent before downstream preview use.
-- RAFT raw dense flow is compressed to a control grid, clipped, smoothed, and interpolated back before preview warping.
-- The v1 constraint strength is fixed to developer-tuned Balanced in the normal UI.
-- Bad Slice replacement is preview-only. It must preserve slice count, original index, and z position, and it must be recorded in metadata.
-- Threshold Iso-surface Preview is the main 3D preview surface. Raw Stack and
-  Aligned Stack threshold iso-surface rendering are implemented through the
-  display-only preview volume path.
-- Orthogonal Preview remains the supporting XY / XZ / YZ slice inspection surface.
-- Opacity-based volume rendering and transfer-function controls are out of scope for v1.
-- Stack physical spacing is represented by XY pixel size in nm and slice spacing in nm. It supports preview proportions and must not be treated as metrology-grade reconstruction evidence.
+- Version 1 delivery 必須包含實際可執行的 RAFT local alignment。
+- 開發可以先建置 non-RAFT pipeline，但交付時 RAFT 不可只停留在 interface 或 placeholder。
+- `phase correlation only` 允許作為 fallback / debug mode。
+- 沒有 working RAFT 的 delivery build 是 degraded mode，不符合完整 v1 acceptance target。
+- RAFT output 必須先 constrained，再進行 image warping；unrestricted raw dense flow 不在 scope 內。
+- RAFT input 使用 stack-level robust range normalization 和 grayscale-to-3-channel conversion。
+- RAFT input 預設不使用 band-pass、CLAHE、histogram matching、gamma correction 或 display contrast preprocessing。
+- RAFT padding 是內部處理，output 在 downstream preview 使用前必須 crop back 到 original image extent。
+- RAFT raw dense flow 會壓縮成 control grid、clip、smooth，並在 preview warping 前 interpolate back。
+- v1 constraint strength 在 normal UI 中固定為 developer-tuned Balanced。
+- Bad Slice replacement is preview-only。它必須保留 slice count、original index 和 z position，且必須記錄在 metadata。
+- Threshold Iso-surface Preview 是主要 3D preview surface。Raw Stack 和
+  Aligned Stack threshold iso-surface rendering 都透過 display-only preview volume path 實作。
+- Orthogonal Preview 保持為輔助的 XY / XZ / YZ slice inspection surface。
+- Opacity-based volume rendering 和 transfer-function controls 不在 v1 scope。
+- Stack physical spacing 由 nm 單位的 XY pixel size 和 nm 單位的 slice spacing 表示。它支援 preview proportions，但不得被視為 metrology-grade reconstruction evidence。
 
-See [docs/session-memory.md](docs/session-memory.md) for current discussion state, next open question, and handoff context.
+目前 discussion state、next open question 和 handoff context 請見 [docs/session-memory.md](docs/session-memory.md)。
 
 ## Constrained RAFT Workflow
 
-The constrained RAFT path can run with either the lightweight mock backend or
-the optional real torchvision backend.
+Constrained RAFT path 可以使用 lightweight mock backend，或 optional real torchvision backend。
 
-Current Run Alignment behavior:
+目前 Run Alignment behavior：
 
-1. Compute coarse global XY positions with phase correlation and graph solving.
-2. Ignore very low-confidence phase edges during the global solve so isolated
-   outliers do not pull later slices into a false drift.
-3. Run the selected RAFT backend on the phase-aligned stack.
-4. Convert raw dense flow into a low-resolution control grid.
-5. Clip displacement, smooth the grid, and interpolate back to full image size.
-6. Warp preview slices only with the constrained flow.
-7. Mark low-confidence phase graph slices as suspicious using relative
-   confidence and bridge evidence, not a brittle absolute response alone.
-8. Confirm Alignment-Unusable slices when RAFT/control-grid sanity stats fail.
-   In the degraded mock backend only, phase bridge evidence acts as a mock
-   sanity signal for macOS smoke testing.
-9. Replace confirmed Bad Slices in the preview stack by interpolation from surrounding good slices.
+1. 使用 phase correlation 和 graph solving 計算 coarse global XY positions。
+2. Global solve 期間忽略 very low-confidence phase edges，避免 isolated outliers 把後續 slices 拉成錯誤 drift。
+3. 在 phase-aligned stack 上執行選定的 RAFT backend。
+4. 將 raw dense flow 轉換為 low-resolution control grid。
+5. Clip displacement、smooth grid，並 interpolate back 到 full image size。
+6. 只用 constrained flow warp preview slices。
+7. 使用 relative confidence 和 bridge evidence 標記 low-confidence phase graph slices 為 suspicious，而不是只依賴脆弱的 absolute response。
+8. 當 RAFT/control-grid sanity stats 失敗時，確認 Alignment-Unusable slices。
+   只有在 degraded mock backend 中，phase bridge evidence 會作為 macOS smoke testing 的 mock sanity signal。
+9. 用 surrounding good slices 的 interpolation 取代 preview stack 中 confirmed Bad Slices。
 
-Balanced is fixed in the normal UI. There are no user tuning controls.
-Bad Slice replacement is also internal in the normal UI. There are no Bad Slice labels,
-manual override controls, or replacement controls in the normal UI.
+Balanced 在 normal UI 中固定。沒有 user tuning controls。
+Bad Slice replacement 在 normal UI 中也是內部行為。Normal UI 不提供 Bad Slice labels、
+manual override controls 或 replacement controls。
 
-Backend selection:
+Backend selection：
 
-- `ALIGNER_RAFT_BACKEND=mock` is the default lightweight development path.
-- `ALIGNER_RAFT_BACKEND=torchvision` forces the real
-  `torchvision.models.optical_flow` backend and requires CUDA for full v1.
-- `ALIGNER_RAFT_BACKEND=auto` attempts the real backend first and falls back to
-  the mock backend only when the real runtime is unavailable.
+- `ALIGNER_RAFT_BACKEND=mock` 是預設 lightweight development path。
+- `ALIGNER_RAFT_BACKEND=torchvision` 會強制使用真實
+  `torchvision.models.optical_flow` backend，完整 v1 需要 CUDA。
+- `ALIGNER_RAFT_BACKEND=auto` 會先嘗試真實 backend，只有在 real runtime unavailable 時才 fallback 到 mock backend。
 
-Current Balanced values for 1024 x 1024 FIB/SEM preview alignment:
+目前 1024 x 1024 FIB/SEM preview alignment 的 Balanced values：
 
-- `max_displacement_px`: `4.0`
-- `control_grid_spacing_px`: `64`
-- `smoothing_sigma_grid`: `1.0`
-- `working_scale`: `1.0`
+- `max_displacement_px`：`4.0`
+- `control_grid_spacing_px`：`64`
+- `smoothing_sigma_grid`：`1.0`
+- `working_scale`：`1.0`
 
-Why these values are conservative:
+為什麼這些 values 保守：
 
-- Phase correlation already handles global XY drift, so RAFT should only correct small residual local motion.
-- 4 px is about 0.39% of a 1024 px image width, which limits local deformation while still allowing visible preview stabilization.
-- 64 px spacing creates a 16 x 16 control grid for 1024 x 1024 images, which prevents pixel-level RAFT noise from directly warping structures.
-- Smoothing by 1 grid cell damps abrupt local changes before interpolation.
+- Phase correlation 已處理 global XY drift，所以 RAFT 只應修正小型 residual local motion。
+- 4 px 約為 1024 px image width 的 0.39%，可限制 local deformation，同時仍允許可見的 preview stabilization。
+- 64 px spacing 會為 1024 x 1024 images 建立 16 x 16 control grid，避免 pixel-level RAFT noise 直接 warp structures。
+- 以 1 grid cell smoothing，可在 interpolation 前抑制 abrupt local changes。
 
-Trade-off:
+Trade-off：
 
-- This protects structure from over-warping, but it may under-correct real local deformation larger than 4 px. That is intentional for v1 preview alignment because Aligner must not make metrology-grade deformation claims.
+- 這會保護 structure 不被 over-warping，但可能 under-correct 大於 4 px 的真實 local deformation。這是 v1 preview alignment 的刻意選擇，因為 Aligner 不得宣稱 metrology-grade deformation。
 
 ## Real RAFT Backend Runtime Notes
 
-The real backend targets `torchvision.models.optical_flow`. The adapter is
-implemented, but full acceptance still needs to be run on Windows 11 with an
-NVIDIA CUDA GPU.
+真實 backend 目標是 `torchvision.models.optical_flow`。Adapter 已實作，但完整 acceptance 仍需要在 Windows 11 搭配 NVIDIA CUDA GPU 上執行。
 
-Recommended build path for full v1:
+完整 v1 建議 build path：
 
-1. Use Windows 11 with an NVIDIA CUDA GPU for full acceptance.
-2. Set up Python 3.12.8 with the pip-only workflow in
-   [docs/windows-pip-setup.md](docs/windows-pip-setup.md).
-3. Install the CUDA-capable `torch` and `torchvision` wheels from the official
-   PyTorch selector using `python -m pip install ...` inside the active
-   `.venv`.
-4. Verify GPU access:
+1. 使用 Windows 11 搭配 NVIDIA CUDA GPU 做完整 acceptance。
+2. 依照 [docs/windows-pip-setup.md](docs/windows-pip-setup.md) 的 pip-only workflow 設定 Python 3.12.8。
+3. 在 active `.venv` 中，使用官方 PyTorch selector 提供的 `python -m pip install ...` 安裝支援 CUDA 的 `torch` 和 `torchvision` wheels。
+4. 驗證 GPU access：
 
    ```powershell
    python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
    ```
 
-5. Force the real backend with `ALIGNER_RAFT_BACKEND=torchvision`.
-6. Launch the GUI and run the workflow from
-   [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md).
+5. 使用 `ALIGNER_RAFT_BACKEND=torchvision` 強制啟用真實 backend。
+6. 啟動 GUI，並執行
+   [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md) 的 workflow。
 
-The real adapter converts Aligner's normalized grayscale-to-3-channel tensors
-to Torch tensors with batch shape `(N, 3, H, W)`, rescales the values to the
-`[-1, 1]` interval expected by torchvision RAFT, keeps RAFT Padding internal,
-uses the final flow tensor from RAFT's output list, crops flow back to the
-original image extent, and passes the cropped raw dense flow through the
-existing constrained flow pipeline before any preview warp.
+真實 adapter 會把 Aligner 的 normalized grayscale-to-3-channel tensors 轉成 batch shape `(N, 3, H, W)` 的 Torch tensors，將 values rescale 到 torchvision RAFT 預期的 `[-1, 1]` interval，讓 RAFT Padding 保持內部處理，使用 RAFT output list 的 final flow tensor，將 flow crop back 到 original image extent，並在任何 preview warp 前，將 cropped raw dense flow 傳入既有 constrained flow pipeline。
 
-Export metadata records backend name, device, degraded/full mode, working
-scale, padding, crop, and Balanced constraint parameters.
+Export metadata 會記錄 backend name、device、degraded/full mode、working scale、padding、crop 和 Balanced constraint parameters。
 
-Do not wire raw RAFT dense flow directly to image warping.
+不要把 raw RAFT dense flow 直接接到 image warping。
 
-To force the real backend for Windows CUDA acceptance:
+若要為 Windows CUDA acceptance 強制使用真實 backend：
 
 ```powershell
 $env:ALIGNER_RAFT_BACKEND = "torchvision"
 aligner gui
 ```
 
-The default backend remains `mock` for lightweight macOS development. The
-`auto` backend attempts real torchvision RAFT first and falls back to the mock
-path only when the real runtime is unavailable.
+預設 backend 仍是 `mock`，用於 lightweight macOS development。`auto` backend 會先嘗試真實 torchvision RAFT，只有在 real runtime unavailable 時才 fallback 到 mock path。
 
 ## Development
 
-This project uses `uv`.
+這個 project 使用 `uv`。
 
 ```bash
 uv sync --extra dev
@@ -306,9 +279,12 @@ uv run aligner probe
 uv run aligner gui
 ```
 
+`uv run aligner probe` 會回報 core dependency availability 和 shared RAFT runtime probe status。在完整 Windows CUDA acceptance machine 上，RAFT probe 應回報已安裝 `torch`、已安裝 `torchvision`、`CUDA available: True`、CUDA device name，以及 `Full Windows CUDA RAFT readiness: ready`。
+這個 probe 只是 readiness check；它不能取代 [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md) 中的完整 Windows CUDA workflow。
+
 ## Project Principles
 
-- Original input TIFF files must never be modified.
-- Default output is a visual preview / stabilization result, not metrology-grade 3D reconstruction.
-- Bad slices may be replaced for preview, but slice count, z-index, and physical depth rhythm must be preserved.
-- RAFT flow must be constrained before use; unrestricted dense deformation is out of scope.
+- Original input TIFF files 絕不可被修改。
+- Default output 是 visual preview / stabilization result，不是 metrology-grade 3D reconstruction。
+- Bad slices 可以為了 preview 被取代，但 slice count、z-index 和 physical depth rhythm 必須保留。
+- RAFT flow 使用前必須 constrained；unrestricted dense deformation 不在 scope 內。

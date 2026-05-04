@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import os
 from dataclasses import dataclass
 from functools import lru_cache
@@ -70,6 +71,26 @@ class TorchvisionRaftRuntime:
     torch: object
     model: object
     device: str
+
+
+@dataclass(slots=True)
+class RaftRuntimeProbe:
+    torch_installed: bool
+    torchvision_installed: bool
+    torch_version: str | None = None
+    torchvision_version: str | None = None
+    cuda_available: bool | None = None
+    cuda_device: str | None = None
+    import_error: str | None = None
+
+    @property
+    def full_acceptance_ready(self) -> bool:
+        return (
+            self.torch_installed
+            and self.torchvision_installed
+            and self.cuda_available is True
+            and self.import_error is None
+        )
 
 
 @dataclass(slots=True)
@@ -331,6 +352,61 @@ def select_raft_flow_provider(backend: str | None = None):
     raise ValueError(
         "ALIGNER_RAFT_BACKEND must be one of: mock, torchvision, auto."
     )
+
+
+def probe_raft_runtime(
+    *,
+    find_spec=importlib.util.find_spec,
+    import_module=importlib.import_module,
+) -> RaftRuntimeProbe:
+    torch_installed = find_spec("torch") is not None
+    torchvision_installed = find_spec("torchvision") is not None
+    if not torch_installed or not torchvision_installed:
+        return RaftRuntimeProbe(
+            torch_installed=torch_installed,
+            torchvision_installed=torchvision_installed,
+        )
+
+    try:
+        torch = import_module("torch")
+        torchvision = import_module("torchvision")
+        cuda_available = bool(torch.cuda.is_available())
+        cuda_device = torch.cuda.get_device_name(0) if cuda_available else None
+    except Exception as error:
+        return RaftRuntimeProbe(
+            torch_installed=torch_installed,
+            torchvision_installed=torchvision_installed,
+            import_error=str(error),
+        )
+
+    return RaftRuntimeProbe(
+        torch_installed=True,
+        torchvision_installed=True,
+        torch_version=getattr(torch, "__version__", "unknown"),
+        torchvision_version=getattr(torchvision, "__version__", "unknown"),
+        cuda_available=cuda_available,
+        cuda_device=cuda_device,
+    )
+
+
+def format_raft_runtime_probe(probe: RaftRuntimeProbe) -> list[str]:
+    if not probe.torch_installed or not probe.torchvision_installed:
+        return ["Optional RAFT backend unavailable: torch/torchvision not installed."]
+    if probe.import_error is not None:
+        return [f"Optional RAFT backend unavailable: {probe.import_error}"]
+
+    lines = [
+        f"torch {probe.torch_version}",
+        f"torchvision {probe.torchvision_version}",
+        f"CUDA available: {probe.cuda_available}",
+    ]
+    if probe.cuda_device is not None:
+        lines.append(f"CUDA device: {probe.cuda_device}")
+    lines.append(
+        "Full Windows CUDA RAFT readiness: "
+        + ("ready" if probe.full_acceptance_ready else "not ready")
+    )
+    return lines
 
 
 def raft_input_provenance(metadata: RaftAdapterMetadata) -> dict[str, object]:

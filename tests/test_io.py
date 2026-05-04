@@ -101,6 +101,26 @@ def test_load_raw_stack_records_xy_pixel_size_from_tiff_metadata(tmp_path: Path)
     assert stack.xy_pixel_size_nm == 500.0
 
 
+def test_load_raw_stack_rejects_inconsistent_stack_xy_pixel_size_metadata(
+    tmp_path: Path,
+) -> None:
+    tifffile.imwrite(
+        tmp_path / "slice_1.tif",
+        np.full((2, 3), 1, dtype=np.uint16),
+        resolution=(20_000, 20_000),
+        resolutionunit="CENTIMETER",
+    )
+    tifffile.imwrite(
+        tmp_path / "slice_2.tif",
+        np.full((2, 3), 2, dtype=np.uint16),
+        resolution=(10_000, 10_000),
+        resolutionunit="CENTIMETER",
+    )
+
+    with pytest.raises(ValueError, match="consistent across the stack"):
+        load_raw_stack(tmp_path, slice_spacing_nm=12.5)
+
+
 def test_load_raw_stack_uses_manual_xy_pixel_size_when_tiff_metadata_is_missing(
     tmp_path: Path,
 ) -> None:

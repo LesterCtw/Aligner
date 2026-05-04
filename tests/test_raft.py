@@ -7,9 +7,11 @@ from aligner.raft import (
     TorchvisionRaftUnavailableError,
     constrain_raft_flow,
     crop_raft_flow_to_original,
+    format_raft_runtime_probe,
     grayscale_to_raft_tensor,
     normalize_stack_for_raft,
     pad_raft_tensor_to_multiple,
+    probe_raft_runtime,
     raft_input_provenance,
     run_mock_raft_smoke_path,
     run_torchvision_raft_flow,
@@ -173,6 +175,69 @@ def test_raft_backend_selection_rejects_unknown_backend() -> None:
         assert "ALIGNER_RAFT_BACKEND" in str(error)
     else:
         raise AssertionError("Expected unknown RAFT backend error.")
+
+
+def test_raft_runtime_probe_reports_missing_optional_backend() -> None:
+    probe = probe_raft_runtime(find_spec=lambda _name: None)
+
+    assert probe.torch_installed is False
+    assert probe.torchvision_installed is False
+    assert probe.full_acceptance_ready is False
+    assert format_raft_runtime_probe(probe) == [
+        "Optional RAFT backend unavailable: torch/torchvision not installed."
+    ]
+
+
+def test_raft_runtime_probe_reports_cuda_readiness() -> None:
+    class FakeCuda:
+        def is_available(self) -> bool:
+            return True
+
+        def get_device_name(self, _index: int) -> str:
+            return "Fake NVIDIA GPU"
+
+    class FakeTorch:
+        __version__ = "2.test"
+        cuda = FakeCuda()
+
+    class FakeTorchvision:
+        __version__ = "0.test"
+
+    def find_spec(_name: str):
+        return object()
+
+    def import_module(name: str):
+        if name == "torch":
+            return FakeTorch()
+        if name == "torchvision":
+            return FakeTorchvision()
+        raise AssertionError(name)
+
+    probe = probe_raft_runtime(find_spec=find_spec, import_module=import_module)
+
+    assert probe.full_acceptance_ready is True
+    assert format_raft_runtime_probe(probe) == [
+        "torch 2.test",
+        "torchvision 0.test",
+        "CUDA available: True",
+        "CUDA device: Fake NVIDIA GPU",
+        "Full Windows CUDA RAFT readiness: ready",
+    ]
+
+
+def test_raft_runtime_probe_reports_import_failure() -> None:
+    def find_spec(_name: str):
+        return object()
+
+    def import_module(_name: str):
+        raise ImportError("broken optional runtime")
+
+    probe = probe_raft_runtime(find_spec=find_spec, import_module=import_module)
+
+    assert probe.full_acceptance_ready is False
+    assert format_raft_runtime_probe(probe) == [
+        "Optional RAFT backend unavailable: broken optional runtime"
+    ]
 
 
 def test_constrained_raft_flow_preserves_shape_and_clips_balanced_displacement() -> None:

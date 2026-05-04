@@ -1,18 +1,18 @@
 # Issue tracker: GitHub
 
-Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for issue operations.
+這個 repo 的 Issues 和 PRDs 都放在 GitHub issues。Issue 操作請使用 `gh` CLI。
 
 ## Conventions
 
-- Create an issue: `gh issue create --title "..." --body "..."`
-- Read an issue: `gh issue view <number> --comments`
-- List issues: `gh issue list --state open --json number,title,body,labels,comments`
-- Comment on an issue: `gh issue comment <number> --body "..."`
-- Apply or remove labels: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- Close an issue: `gh issue close <number> --comment "..."`
+- 建立 issue：`gh issue create --title "..." --body "..."`
+- 讀取 issue：`gh issue view <number> --comments`
+- 列出 issues：`gh issue list --state open --json number,title,body,labels,comments`
+- 在 issue 留言：`gh issue comment <number> --body "..."`
+- 套用或移除 labels：`gh issue edit <number> --add-label "..."` / `--remove-label "..."`
+- 關閉 issue：`gh issue close <number> --comment "..."`
 
-Infer the repo from `git remote -v`; `gh` does this automatically when run inside this clone.
+Repo 由 `git remote -v` 推斷；在這個 clone 內執行時，`gh` 會自動處理。
 
 ## Publishing
 
-When a skill says "publish to the issue tracker", create a GitHub issue in `LesterCtw/Aligner`.
+當 skill 提到「publish to the issue tracker」時，請在 `LesterCtw/Aligner` 建立 GitHub issue。

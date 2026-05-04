@@ -1,33 +1,33 @@
-# Codex Instruction
+# Codex 指令
 
-## Communication
+## 溝通
 
-- Use Traditional Chinese for user-facing responses by default.
-- Keep explanations simple, concrete, and easy to follow.
-- Use English for code, comments, commands, APIs, libraries, and standard technical terms.
-- Keep `README.md` up to date. It is the source of truth for current project status.
+- 對使用者的回覆預設使用繁體中文。
+- 說明要簡單、具體、容易理解。
+- 程式碼、註解、指令、API、library 和標準技術名詞使用英文。
+- 保持 `README.md` 最新。它是目前專案狀態的唯一事實來源。
 
-## Workflow
+## 工作流程
 
-- Clarify the actual requirement first.
-- Propose a Minimum Viable Solution before adding complexity.
-- Avoid adding unrequested features or abstractions.
-- When modifying existing code, make the smallest change that solves the problem.
+- 先釐清實際需求。
+- 先提出 Minimum Viable Solution，再考慮增加複雜度。
+- 避免加入未被要求的功能或抽象化。
+- 修改既有程式碼時，做能解決問題的最小變更。
 
-## Python Development
+## Python 開發
 
-- Prefer `uv` for dependency management, virtual environments, lockfiles, and command execution.
+- 優先使用 `uv` 管理 dependencies、virtual environments、lockfiles 和 command execution。
 
 ## Agent skills
 
 ### Issue tracker
 
-Issues and PRDs are tracked in GitHub Issues for `LesterCtw/Aligner`. See `docs/agents/issue-tracker.md`.
+Issues 和 PRDs 都追蹤在 `LesterCtw/Aligner` 的 GitHub Issues。請參考 `docs/agents/issue-tracker.md`。
 
 ### Triage labels
 
-The repo uses the default five-label triage vocabulary. See `docs/agents/triage-labels.md`.
+此 repo 使用預設五種 triage label 詞彙。請參考 `docs/agents/triage-labels.md`。
 
 ### Domain docs
 
-This is a single-context repo with root-level domain docs. See `docs/agents/domain.md`.
+這是一個 single-context repo，root 層有 domain docs。請參考 `docs/agents/domain.md`。
