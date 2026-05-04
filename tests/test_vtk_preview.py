@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
 
 from aligner.app import MainWindow  # noqa: E402
 from aligner.preview import ThresholdPreviewVolume  # noqa: E402
-from aligner.vtk_preview import ThresholdIsoSurfacePreview  # noqa: E402
+from aligner.vtk_preview import ThresholdIsoSurfacePreview, _should_use_vtk_widget  # noqa: E402
 
 
 def get_qapp() -> QApplication:
@@ -24,6 +24,20 @@ def test_app_environment_imports_vtk_qt_integration() -> None:
     from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
     assert QVTKRenderWindowInteractor is not None
+
+
+def test_macos_uses_placeholder_vtk_preview_by_default(monkeypatch) -> None:
+    monkeypatch.delenv("ALIGNER_ENABLE_VTK_PREVIEW", raising=False)
+    monkeypatch.setattr("aligner.vtk_preview.sys.platform", "darwin")
+
+    assert not _should_use_vtk_widget()
+
+
+def test_vtk_preview_can_be_enabled_explicitly_on_macos(monkeypatch) -> None:
+    monkeypatch.setenv("ALIGNER_ENABLE_VTK_PREVIEW", "1")
+    monkeypatch.setattr("aligner.vtk_preview.sys.platform", "darwin")
+
+    assert _should_use_vtk_widget()
 
 
 def test_main_window_shows_vtk_preview_shell_above_supporting_orthogonal_preview() -> None:

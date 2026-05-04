@@ -33,6 +33,8 @@ Icon 遵循 Aligner、Denoiser 和 Measurer 共用的 Project icon style：深�
 完整 v1 acceptance target 是 Windows 11 + NVIDIA CUDA GPU。
 
 macOS 只用於開發和 tiny smoke/mock checks。macOS is for development and tiny smoke/mock checks only。macOS run 可以驗證 scaffold behavior 和小型 mocked paths，但不是完整 RAFT acceptance environment。
+macOS 預設不啟用 VTK 3D preview widget，避免 Qt/VTK/OpenGL 在 macOS 上讓 app 卡在 Dock
+但主視窗無法正常互動。這不影響 Windows CUDA acceptance target。
 
 Windows CUDA acceptance workflow 記錄於
 [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md)。
@@ -278,6 +280,16 @@ uv run pytest
 uv run aligner probe
 uv run aligner gui
 ```
+
+macOS 上 `uv run aligner gui` 預設使用 lightweight placeholder 取代 VTK 3D preview，確保 GUI
+可啟動做 development smoke checks。若要在 macOS 明確測試 VTK preview，可使用：
+
+```bash
+ALIGNER_ENABLE_VTK_PREVIEW=1 uv run aligner gui
+```
+
+這個 opt-in 可能受 macOS Qt/VTK/OpenGL runtime 影響；若 Dock 顯示 `python3` 但主視窗無法正常互動，
+請回到預設指令 `uv run aligner gui`。
 
 `uv run aligner probe` 會回報 core dependency availability 和 shared RAFT runtime probe status。在完整 Windows CUDA acceptance machine 上，RAFT probe 應回報已安裝 `torch`、已安裝 `torchvision`、`CUDA available: True`、CUDA device name，以及 `Full Windows CUDA RAFT readiness: ready`。
 這個 probe 只是 readiness check；它不能取代 [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md) 中的完整 Windows CUDA workflow。

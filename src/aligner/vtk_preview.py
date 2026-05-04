@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
@@ -39,7 +40,7 @@ class ThresholdIsoSurfacePreview(QWidget):
         self._vtk_widget: QVTKRenderWindowInteractor | None = None
         self._renderer: vtkRenderer | None = None
         self._placeholder_actor: vtkActor | None = None
-        if _is_offscreen_qt():
+        if not _should_use_vtk_widget():
             placeholder = QLabel("VTK preview shell")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             placeholder.setStyleSheet("background: #14171a; color: #f1f3f4;")
@@ -162,3 +163,14 @@ def _is_offscreen_qt() -> bool:
     return os.environ.get("QT_QPA_PLATFORM") == "offscreen" or (
         app is not None and app.platformName() == "offscreen"
     )
+
+
+def _should_use_vtk_widget() -> bool:
+    configured = os.environ.get("ALIGNER_ENABLE_VTK_PREVIEW")
+    if configured is not None:
+        return configured.lower() in {"1", "true", "yes", "on"}
+
+    if _is_offscreen_qt():
+        return False
+
+    return sys.platform != "darwin"
