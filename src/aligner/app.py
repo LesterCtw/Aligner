@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -25,7 +23,14 @@ from PySide6.QtWidgets import (
 
 from aligner.alignment import run_constrained_raft_alignment
 from aligner.app_icon import load_application_icon
+from aligner.app_messages import (
+    alignment_success_message,
+    export_success_message,
+    load_success_message,
+    show_slice_message,
+)
 from aligner.export import export_preview_stack
+from aligner.image_view import ImageView
 from aligner.io import load_raw_stack, spacing_to_nm
 from aligner.models import AlignedStack, ProjectConfig, RawStack
 from aligner.preview import (
@@ -33,53 +38,13 @@ from aligner.preview import (
     generate_orthogonal_previews,
     generate_threshold_preview_volume,
 )
-from aligner.threshold import ThresholdStatistics, compute_threshold_statistics
+from aligner.project_summary import format_project_summary
+from aligner.threshold import (
+    ThresholdControlState,
+    compute_threshold_statistics,
+    format_threshold_summary,
+)
 from aligner.vtk_preview import ThresholdIsoSurfacePreview
-
-
-def _array_to_display_uint8(array: np.ndarray) -> np.ndarray:
-    if array.dtype == np.uint8:
-        return np.ascontiguousarray(array)
-
-    min_value = float(np.min(array))
-    max_value = float(np.max(array))
-    if max_value <= min_value:
-        return np.zeros(array.shape, dtype=np.uint8)
-
-    scaled = (array.astype(np.float32) - min_value) * (255.0 / (max_value - min_value))
-    return np.ascontiguousarray(np.clip(scaled, 0, 255).astype(np.uint8))
-
-
-def _array_to_pixmap(array: np.ndarray) -> QPixmap:
-    display = _array_to_display_uint8(array)
-    height, width = display.shape
-    image = QImage(
-        display.data,
-        width,
-        height,
-        display.strides[0],
-        QImage.Format.Format_Grayscale8,
-    ).copy()
-    return QPixmap.fromImage(image)
-
-
-class ImageView(QLabel):
-    def __init__(self, title: str) -> None:
-        super().__init__(title)
-        self._title = title
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setMinimumSize(180, 140)
-        self.setStyleSheet("background: #202124; color: #f1f3f4;")
-
-    def show_array(self, array: np.ndarray) -> None:
-        pixmap = _array_to_pixmap(array)
-        self.setPixmap(
-            pixmap.scaled(
-                self.size(),
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        )
 
 
 class MainWindow(QMainWindow):
@@ -94,10 +59,7 @@ class MainWindow(QMainWindow):
         self.raw_stack: RawStack | None = None
         self.aligned_stack: AlignedStack | None = None
         self.threshold_preview_volume: ThresholdPreviewVolume | None = None
-        self.threshold_statistics: ThresholdStatistics | None = None
-        self.pending_threshold: int | None = None
-        self.applied_threshold: int | None = None
-        self.applied_threshold_rebuilds: list[int] = []
+        self.threshold_state = ThresholdControlState.unavailable()
         self._syncing_threshold_controls = False
 
         toolbar = QToolBar("Main")
@@ -246,9 +208,7 @@ class MainWindow(QMainWindow):
         self.export_button.setEnabled(True)
         self._update_stack_summary()
         self.show_slice(0)
-        self.statusBar().showMessage(
-            f"Loaded {len(self.raw_stack.slices)} raw slices; 3D preview: Raw Stack"
-        )
+        self.statusBar().showMessage(load_success_message(len(self.raw_stack.slices)))
 
     def run_alignment(self) -> None:
         if self.raw_stack is None:
@@ -261,7 +221,7 @@ class MainWindow(QMainWindow):
         )
         self._prepare_active_stack_iso_surface_preview()
         self.show_slice(self.timeline.value())
-        self.statusBar().showMessage("Generated constrained RAFT Aligned Stack; 3D preview: Aligned Stack")
+        self.statusBar().showMessage(alignment_success_message())
 
     def export_preview_stack(self) -> None:
         if self.raw_stack is None:
@@ -285,14 +245,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Export failed: {error}")
             return
 
-        export_label = "identity"
-        if self.aligned_stack is not None:
-            export_label = (
-                "constrained RAFT"
-                if self.aligned_stack.alignment_status == "constrained_raft"
-                else "phase-only"
-            )
-        self.statusBar().showMessage(f"Exported {export_label} Preview Stack to {folder}")
+        self.statusBar().showMessage(export_success_message(self.aligned_stack, folder))
 
     def show_slice(self, slice_index: int) -> None:
         if self.raw_stack is None:
@@ -304,28 +257,33 @@ class MainWindow(QMainWindow):
         self.xy_preview.show_array(previews.xy)
         self.xz_preview.show_array(previews.xz)
         self.yz_preview.show_array(previews.yz)
-        stack_label = "aligned" if self.aligned_stack is not None else "raw"
         self.statusBar().showMessage(
-            f"Showing {stack_label} slice {slice_index + 1} of {len(self.raw_stack.slices)}"
+            show_slice_message(
+                aligned=self.aligned_stack is not None,
+                slice_index=slice_index,
+                slice_count=len(self.raw_stack.slices),
+            )
         )
 
     def apply_threshold(self) -> None:
-        if self.pending_threshold is None:
+        applied_threshold = self.threshold_state.apply_pending()
+        if applied_threshold is None:
             return
 
-        self.applied_threshold = self.pending_threshold
-        self.applied_threshold_rebuilds.append(self.applied_threshold)
         self._render_active_stack_iso_surface_preview()
-        self.statusBar().showMessage(f"Applied threshold {self.applied_threshold}")
+        self.statusBar().showMessage(f"Applied threshold {applied_threshold}")
 
     def _prepare_threshold_controls(self) -> None:
         if self.raw_stack is None:
             self._reset_threshold_controls()
             return
 
-        self.threshold_statistics = compute_threshold_statistics(self.raw_stack.data)
-        threshold = self.threshold_statistics.otsu_threshold
-        max_intensity = int(self.threshold_statistics.intensity_values[-1])
+        statistics = compute_threshold_statistics(self.raw_stack.data)
+        self.threshold_state = ThresholdControlState.from_statistics(statistics)
+        threshold = self.threshold_state.pending_threshold
+        if threshold is None:
+            return
+        max_intensity = int(statistics.intensity_values[-1])
 
         self._syncing_threshold_controls = True
         try:
@@ -336,19 +294,13 @@ class MainWindow(QMainWindow):
         finally:
             self._syncing_threshold_controls = False
 
-        self.pending_threshold = threshold
-        self.applied_threshold = threshold
-        self.applied_threshold_rebuilds = [threshold]
         self.threshold_slider.setEnabled(True)
         self.threshold_value.setEnabled(True)
         self.apply_threshold_button.setEnabled(True)
-        self.threshold_summary.setText(self._format_threshold_summary(self.threshold_statistics))
+        self.threshold_summary.setText(format_threshold_summary(statistics))
 
     def _reset_threshold_controls(self) -> None:
-        self.threshold_statistics = None
-        self.pending_threshold = None
-        self.applied_threshold = None
-        self.applied_threshold_rebuilds = []
+        self.threshold_state = ThresholdControlState.unavailable()
 
         self._syncing_threshold_controls = True
         try:
@@ -407,7 +359,7 @@ class MainWindow(QMainWindow):
         if self._syncing_threshold_controls:
             return
 
-        self.pending_threshold = value
+        self.threshold_state.set_pending(value)
         self._syncing_threshold_controls = True
         try:
             self.threshold_value.setValue(value)
@@ -418,44 +370,39 @@ class MainWindow(QMainWindow):
         if self._syncing_threshold_controls:
             return
 
-        self.pending_threshold = value
+        self.threshold_state.set_pending(value)
         self._syncing_threshold_controls = True
         try:
             self.threshold_slider.setValue(value)
         finally:
             self._syncing_threshold_controls = False
 
-    def _format_threshold_summary(self, statistics: ThresholdStatistics) -> str:
-        occupied = np.flatnonzero(statistics.histogram_counts)
-        min_intensity = int(statistics.intensity_values[occupied[0]])
-        max_intensity = int(statistics.intensity_values[occupied[-1]])
-        voxel_count = int(statistics.histogram_counts.sum())
-        return (
-            f"Histogram: {voxel_count} voxels, intensity {min_intensity:g}-{max_intensity:g}; "
-            f"Otsu threshold: {statistics.otsu_threshold:g}"
-        )
-
     def _update_stack_summary(self) -> None:
         if self.raw_stack is None:
             return
 
-        files = [record.filename for record in self.raw_stack.slices]
-        preview_names = files[:8]
-        if len(files) > len(preview_names):
-            preview_names.append(f"... {len(files) - len(preview_names)} more")
-
-        first = self.raw_stack.slices[0]
         self.left_panel.setText(
-            "Project settings\n\n"
-            f"Folder: {self.config.input_folder}\n"
-            f"Slices: {len(self.raw_stack.slices)}\n"
-            f"Size: {first.width} x {first.height}\n"
-            f"Dtype: {first.dtype}\n"
-            f"Slice spacing: {self.raw_stack.slice_spacing_nm:g} nm\n"
-            f"XY pixel size: {self.raw_stack.xy_pixel_size_nm:g} nm\n\n"
-            "Natural file order:\n"
-            + "\n".join(preview_names)
+            format_project_summary(
+                self.raw_stack,
+                input_folder=self.config.input_folder,
+            )
         )
+
+    @property
+    def threshold_statistics(self):
+        return self.threshold_state.statistics
+
+    @property
+    def pending_threshold(self) -> int | None:
+        return self.threshold_state.pending_threshold
+
+    @property
+    def applied_threshold(self) -> int | None:
+        return self.threshold_state.applied_threshold
+
+    @property
+    def applied_threshold_rebuilds(self) -> list[int]:
+        return self.threshold_state.applied_threshold_rebuilds
 
 
 def run_gui() -> int:

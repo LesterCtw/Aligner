@@ -10,8 +10,10 @@ from aligner.raft import (
     grayscale_to_raft_tensor,
     normalize_stack_for_raft,
     pad_raft_tensor_to_multiple,
+    raft_input_provenance,
     run_mock_raft_smoke_path,
     run_torchvision_raft_flow,
+    select_raft_flow_provider,
 )
 from aligner.models import RawStack, SliceRecord
 
@@ -118,6 +120,59 @@ def test_mock_raft_smoke_path_returns_cropped_flow_and_metadata() -> None:
     assert result.metadata.crop_y == 0
     assert result.metadata.crop_width == 5
     assert result.metadata.crop_height == 3
+
+
+def test_raft_input_provenance_uses_adapter_metadata_shape() -> None:
+    data = np.stack(
+        [
+            np.arange(15, dtype=np.uint16).reshape(3, 5),
+            np.arange(15, 30, dtype=np.uint16).reshape(3, 5),
+        ],
+        axis=0,
+    )
+    stack = RawStack(
+        data=data,
+        slices=[
+            SliceRecord(0, "slice_0.tif", "/tmp/slice_0.tif", 0.0, 5, 3, "uint16", "raw"),
+            SliceRecord(1, "slice_1.tif", "/tmp/slice_1.tif", 10.0, 5, 3, "uint16", "raw"),
+        ],
+        slice_spacing_nm=10.0,
+    )
+
+    result = run_mock_raft_smoke_path(stack, reference_index=0, moving_index=1, multiple=4)
+    provenance = raft_input_provenance(result.metadata)
+
+    assert provenance["normalization"]["lower_percentile"] == 1.0
+    assert provenance["padding"]["mode"] == "reflect"
+    assert provenance["padding"]["padded_width"] == 8
+    assert provenance["crop_back"] == {"x": 0, "y": 0, "width": 5, "height": 3}
+
+
+def test_raft_backend_selection_returns_pair_provider() -> None:
+    data = np.zeros((2, 3, 5), dtype=np.uint16)
+    stack = RawStack(
+        data=data,
+        slices=[
+            SliceRecord(0, "slice_0.tif", "/tmp/slice_0.tif", 0.0, 5, 3, "uint16", "raw"),
+            SliceRecord(1, "slice_1.tif", "/tmp/slice_1.tif", 10.0, 5, 3, "uint16", "raw"),
+        ],
+        slice_spacing_nm=10.0,
+    )
+
+    provider = select_raft_flow_provider("mock")
+    result = provider(stack, 0, 1)
+
+    assert result.metadata.backend_name == "mock_raft"
+    assert result.flow.shape == (2, 3, 5)
+
+
+def test_raft_backend_selection_rejects_unknown_backend() -> None:
+    try:
+        select_raft_flow_provider("not-a-backend")
+    except ValueError as error:
+        assert "ALIGNER_RAFT_BACKEND" in str(error)
+    else:
+        raise AssertionError("Expected unknown RAFT backend error.")
 
 
 def test_constrained_raft_flow_preserves_shape_and_clips_balanced_displacement() -> None:

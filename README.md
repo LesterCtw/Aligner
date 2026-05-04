@@ -37,6 +37,9 @@ macOS is for development and tiny smoke/mock checks only. A macOS run can verify
 The Windows CUDA acceptance workflow is documented in
 [docs/windows-cuda-acceptance.md](docs/windows-cuda-acceptance.md).
 
+The current human verification tracker is documented in
+[docs/manual-verification.md](docs/manual-verification.md).
+
 The Windows 11 + Python 3.12.8 pip-only setup and test workflow is documented in
 [docs/windows-pip-setup.md](docs/windows-pip-setup.md).
 
@@ -66,11 +69,15 @@ Implemented now:
 - Raw Stack metadata records for filename, original index, z position, size, dtype, and XY pixel size
 - PySide6 Open Folder flow for loading a Raw Stack into the UI
 - Natural file order and physical spacing summary in the UI
+- Project summary formatting is concentrated in a dedicated module
 - 2D raw slice viewer with slider navigation
+- 2D image display scaling and QLabel rendering are concentrated in a dedicated ImageView module
 - Raw XY / XZ / YZ Orthogonal Preview generation and display
 - Threshold histogram statistics for loaded Raw Stacks in original uint8 /
   uint16 intensity units
 - Otsu default threshold selection after Raw Stack load
+- Threshold pending/applied state and summary formatting are concentrated in
+  the threshold module
 - Threshold slider, numeric input, and Apply / Enter behavior for committing
   an applied threshold without rebuilding while dragging
 - VTK + Qt 3D preview rendering shell in the main preview area
@@ -85,7 +92,10 @@ Implemented now:
   Iso-surface Preview shell, and right lower supporting Orthogonal Preview
 - Identity Preview Stack export from the loaded Raw Stack
 - Identity export metadata JSON with input mapping, slice provenance, dimensions, dtype, software version, and identity alignment status
+- Preview Stack metadata generation is concentrated in a dedicated module separate from TIFF file writing
 - Phase-correlation-only Preview Alignment as a degraded/debug path
+- Phase-only alignment, pairwise phase edge creation, and global graph solving
+  are concentrated in a dedicated phase alignment module
 - Pairwise phase correlation edges for slice distances 1 to 3 with dx, dy, response, weight, and method metadata
 - Weighted registration graph solve for non-cumulative global coarse XY positions
 - Robust graph solve now ignores very low-confidence phase edges so isolated
@@ -96,13 +106,18 @@ Implemented now:
 - Phase-only export metadata records the Aligned Crop Region and cropped output dimensions
 - RAFT input foundation with stack-level robust range normalization, grayscale-to-3-channel tensor conversion, reflect padding, crop-back, and a mock smoke backend for development
 - RAFT smoke metadata records normalization range, backend name, device/degraded mode, and padding behavior
+- RAFT input provenance generation is concentrated in the RAFT module
 - Optional real RAFT adapter using `torchvision.models.optical_flow`
 - RAFT backend selection through `ALIGNER_RAFT_BACKEND=mock|torchvision|auto`
+- RAFT backend selection and fallback rules are concentrated in the RAFT module
 - Constrained RAFT local alignment MVS using small/mock RAFT flow inputs
 - Balanced constrained flow parameters fixed at max displacement 4 px, 64 px control grid spacing, smoothing sigma 1 grid cell, and working scale 1.0
 - Run Alignment now executes phase correlation followed by constrained RAFT local alignment and shows the constrained RAFT Aligned Stack in the Orthogonal Preview panel
+- User-visible app status message formatting is concentrated in a dedicated module
 - Constrained RAFT Preview Stack export metadata records RAFT backend, degraded mode, working resolution scale, RAFT normalization range, RAFT Padding/crop-back provenance, Balanced constraint parameters, control grid shape, and raw/constrained flow displacement maxima
 - Internal Bad Slice detection and preview-only replacement MVS
+- Bad Slice marking, Alignment-Unusable confirmation, and preview-only
+  replacement are concentrated in a dedicated module for local rule changes
 - Phase graph confidence can mark suspicious slices without replacing normal
   slices that merely have low absolute response values
 - RAFT/control-grid sanity is required before a suspicious slice becomes Alignment-Unusable
@@ -114,20 +129,30 @@ Implemented now:
 - Preview Stack export metadata records per-slice output dimensions, Bad Slice status, display source, and replacement source slices
 - Basic tests for discovery, sorting, and unit conversion
 - Behavior tests for Raw Stack loading validation and Orthogonal Preview generation
+- Focused behavior tests for Project summary formatting
+- Focused behavior tests for 2D image display scaling
 - Behavior tests for 8-bit / 16-bit Raw Stack loading, provenance fields, unsupported input errors, UI slice spacing input, TIFF XY pixel size metadata, manual XY fallback, and UI XY summary
 - Behavior tests for threshold histograms, Otsu defaults, pending threshold
   edits, and explicit Apply / Enter threshold commits
+- Focused behavior tests for threshold pending/applied state and summary text
 - Behavior tests for Raw Stack threshold iso-surface preview volume spacing,
   display-only non-mutation behavior, and applied-threshold preview rebuilds
 - Behavior tests for Raw and Aligned Stack 3D preview source labeling,
   Run Alignment preview refresh, and active-stack threshold rebuild behavior
+- Focused behavior tests for user-visible app status messages
 - Behavior tests for identity TIFF export, metadata fields, overwrite refusal, and UI export enablement
+- Focused behavior tests for Preview Stack metadata generation without filesystem side effects
 - Behavior tests verifying Threshold Iso-surface Preview state does not affect
   Raw or Aligned Stack Preview Stack export files or metadata
 - Behavior tests for phase correlation edge creation, graph solving, phase-only aligned stack generation, UI alignment, phase-only export metadata, and common crop export dimensions
+- Phase alignment module remains re-exported through the alignment module for
+  backward-compatible callers
 - Behavior tests for RAFT normalization consistency, tensor conversion shape, reflect padding, crop-back, and mock smoke metadata
+- Behavior tests for RAFT input provenance generation
+- Behavior tests for RAFT backend selection through the RAFT module interface
 - Behavior tests for constrained flow clipping, constrained flow shape, local preview warp integration, UI Run Alignment, and constrained RAFT export metadata
 - Behavior tests for two-stage Bad Slice confirmation, no replacement on phase signal alone, preview-only replacement provenance, preserved slice rhythm, Bad Slice export metadata, complete RAFT input provenance export, and final aligned TIFF export contract
+- Focused behavior tests for the Bad Slice rule module interface
 
 Not implemented yet:
 
@@ -135,13 +160,15 @@ Not implemented yet:
 
 Current acceptance status:
 
+- Remaining human verification is summarized in
+  [docs/manual-verification.md](docs/manual-verification.md).
 - 600-slice Threshold Iso-surface Preview acceptance is tracked in
   [Issue #22](https://github.com/LesterCtw/Aligner/issues/22). Automated
   behavior coverage exists for threshold controls, Raw/Aligned preview source
   switching, and export isolation. The manual camera interaction acceptance
   remains pending on a real desktop display with a practical 600-slice stack.
 - Real RAFT implementation work is tracked in
-  [#13](https://github.com/LesterCtw/Aligner/issues/13).
+  [#13](https://github.com/LesterCtw/Aligner/issues/13), which is closed.
 - Final Windows CUDA acceptance remains tracked in
   [#12](https://github.com/LesterCtw/Aligner/issues/12).
 - macOS cannot verify CUDA execution. The remaining required check is to run
