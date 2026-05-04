@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
@@ -13,6 +13,39 @@ class ThresholdStatistics:
     intensity_values: NDArray[np.integer]
     histogram_counts: NDArray[np.integer]
     otsu_threshold: int
+
+
+@dataclass(slots=True)
+class ThresholdControlState:
+    statistics: ThresholdStatistics | None = None
+    pending_threshold: int | None = None
+    applied_threshold: int | None = None
+    applied_threshold_rebuilds: list[int] = field(default_factory=list)
+
+    @classmethod
+    def from_statistics(cls, statistics: ThresholdStatistics) -> ThresholdControlState:
+        threshold = statistics.otsu_threshold
+        return cls(
+            statistics=statistics,
+            pending_threshold=threshold,
+            applied_threshold=threshold,
+            applied_threshold_rebuilds=[threshold],
+        )
+
+    @classmethod
+    def unavailable(cls) -> ThresholdControlState:
+        return cls()
+
+    def set_pending(self, threshold: int) -> None:
+        self.pending_threshold = threshold
+
+    def apply_pending(self) -> int | None:
+        if self.pending_threshold is None:
+            return None
+
+        self.applied_threshold = self.pending_threshold
+        self.applied_threshold_rebuilds.append(self.applied_threshold)
+        return self.applied_threshold
 
 
 def compute_threshold_statistics(data: NDArray[np.integer]) -> ThresholdStatistics:
@@ -34,6 +67,17 @@ def compute_threshold_statistics(data: NDArray[np.integer]) -> ThresholdStatisti
         intensity_values=intensity_values,
         histogram_counts=histogram_counts,
         otsu_threshold=_otsu_threshold(histogram_counts, intensity_values),
+    )
+
+
+def format_threshold_summary(statistics: ThresholdStatistics) -> str:
+    occupied = np.flatnonzero(statistics.histogram_counts)
+    min_intensity = int(statistics.intensity_values[occupied[0]])
+    max_intensity = int(statistics.intensity_values[occupied[-1]])
+    voxel_count = int(statistics.histogram_counts.sum())
+    return (
+        f"Histogram: {voxel_count} voxels, intensity {min_intensity:g}-{max_intensity:g}; "
+        f"Otsu threshold: {statistics.otsu_threshold:g}"
     )
 
 

@@ -9,6 +9,7 @@ import tifffile
 
 from aligner.alignment import run_constrained_raft_alignment, run_phase_alignment
 from aligner.export import export_identity_preview_stack, export_preview_stack
+from aligner.export_metadata import build_preview_stack_metadata
 from aligner.models import RawStack, SliceRecord
 
 
@@ -131,6 +132,18 @@ def test_export_identity_preview_stack_writes_required_metadata(tmp_path: Path) 
             "alignment_status": "identity",
         },
     ]
+
+
+def test_preview_stack_metadata_builder_has_no_filesystem_side_effects(tmp_path: Path) -> None:
+    stack = make_raw_stack(tmp_path)
+    output_folder = tmp_path / "metadata-only"
+
+    metadata = build_preview_stack_metadata(stack, export_shape=stack.data.shape[1:])
+
+    assert not output_folder.exists()
+    assert metadata["preview_stack"]["alignment_status"] == "identity"
+    assert metadata["preview_stack"]["image_dimensions"] == {"width": 3, "height": 2}
+    assert metadata["slices"][0]["output_file"] == "slice_0000.tif"
 
 
 def test_export_phase_only_preview_stack_writes_alignment_metadata(tmp_path: Path) -> None:

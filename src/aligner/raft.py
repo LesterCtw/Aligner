@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -316,6 +317,51 @@ def run_torchvision_raft_flow(
     )
 
 
+def select_raft_flow_provider(backend: str | None = None):
+    selected_backend = (
+        backend if backend is not None else os.environ.get("ALIGNER_RAFT_BACKEND", "mock")
+    )
+    selected_backend = selected_backend.strip().lower()
+    if selected_backend in {"mock", "mock_raft", "degraded"}:
+        return _run_mock_raft_flow_pair
+    if selected_backend in {"torchvision", "real", "cuda"}:
+        return _run_torchvision_raft_flow_pair
+    if selected_backend == "auto":
+        return _run_auto_raft_flow_pair
+    raise ValueError(
+        "ALIGNER_RAFT_BACKEND must be one of: mock, torchvision, auto."
+    )
+
+
+def raft_input_provenance(metadata: RaftAdapterMetadata) -> dict[str, object]:
+    return {
+        "normalization": {
+            "source_min": metadata.normalization.source_min,
+            "source_max": metadata.normalization.source_max,
+            "lower_percentile": metadata.normalization.lower_percentile,
+            "upper_percentile": metadata.normalization.upper_percentile,
+        },
+        "padding": {
+            "mode": metadata.padding.mode,
+            "multiple": metadata.padding.multiple,
+            "original_width": metadata.padding.original_width,
+            "original_height": metadata.padding.original_height,
+            "padded_width": metadata.padding.padded_width,
+            "padded_height": metadata.padding.padded_height,
+            "pad_left": metadata.padding.pad_left,
+            "pad_right": metadata.padding.pad_right,
+            "pad_top": metadata.padding.pad_top,
+            "pad_bottom": metadata.padding.pad_bottom,
+        },
+        "crop_back": {
+            "x": metadata.crop_x,
+            "y": metadata.crop_y,
+            "width": metadata.crop_width,
+            "height": metadata.crop_height,
+        },
+    }
+
+
 def normalize_stack_for_raft(
     data: NDArray[np.integer],
     *,
@@ -409,6 +455,41 @@ def _clip_flow_magnitude(
 def _max_flow_magnitude(flow: NDArray[np.float32]) -> float:
     magnitude = np.sqrt(np.sum(flow**2, axis=0))
     return float(np.max(magnitude))
+
+
+def _run_mock_raft_flow_pair(
+    stack: RawStack,
+    reference_index: int,
+    moving_index: int,
+) -> RaftFlowResult:
+    return run_mock_raft_smoke_path(
+        stack,
+        reference_index=reference_index,
+        moving_index=moving_index,
+    )
+
+
+def _run_torchvision_raft_flow_pair(
+    stack: RawStack,
+    reference_index: int,
+    moving_index: int,
+) -> RaftFlowResult:
+    return run_torchvision_raft_flow(
+        stack,
+        reference_index=reference_index,
+        moving_index=moving_index,
+    )
+
+
+def _run_auto_raft_flow_pair(
+    stack: RawStack,
+    reference_index: int,
+    moving_index: int,
+) -> RaftFlowResult:
+    try:
+        return _run_torchvision_raft_flow_pair(stack, reference_index, moving_index)
+    except TorchvisionRaftUnavailableError:
+        return _run_mock_raft_flow_pair(stack, reference_index, moving_index)
 
 
 def _import_optional_module(name: str):
