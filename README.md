@@ -14,7 +14,7 @@ Windows packaging 和 runtime window icons 必須使用：
 assets/icons/aligner_icon.ico
 ```
 
-Icon 遵循 Aligner、Denoiser 和 Measurer 共用的 Project icon style：深色 rounded-square background、藍色產品首字母，不放底部 wordmark。
+Icon 遵循 Aligner、Denoiser 和 Measurer 共用的 Project icon style：深色 rounded-square background、置中的藍色產品首字母，不放底部 wordmark。
 
 目標 workflow：
 
